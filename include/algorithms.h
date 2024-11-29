@@ -31,9 +31,9 @@ class EdgeHeapQueue {
 };
 
 // krushkal implementation computing smallest edge on demand
-class Krushkal : public MSTAlgorithm {
+class Kruskal : public MSTAlgorithm {
     public:
-    Krushkal(Graph& g) : MSTAlgorithm(g) { }
+    Kruskal(Graph& g) : MSTAlgorithm(g) { }
 
     void compute_mst() override {
         size_t edges = 0;
@@ -68,6 +68,6 @@ class Krushkal : public MSTAlgorithm {
 
 inline std::vector<std::pair<std::string, std::unique_ptr<MSTAlgorithm>>> get_algorithms(Graph& g) {
     std::vector<std::pair<std::string, std::unique_ptr<MSTAlgorithm>>> algs{};
-    algs.push_back(std::make_pair<std::string, std::unique_ptr<MSTAlgorithm>>(std::string("krushkal_on_demand_bin_heap"), std::make_unique<Krushkal>(g)));
+    algs.push_back(std::make_pair<std::string, std::unique_ptr<MSTAlgorithm>>(std::string("krushkal_on_demand_bin_heap"), std::make_unique<Kruskal>(g)));
     return algs;
 }
