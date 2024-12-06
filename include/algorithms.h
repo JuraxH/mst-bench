@@ -75,7 +75,7 @@ class RandomKKT : MSTAlgorithm {
 
     void compute_mst() override {
     }
-
+    // min edges can be duplicated
     std::pair<std::vector<Edge>, GraphType> borůvka_step(GraphType& graph) {
         auto weight_map = get(boost::edge_weight, graph);
         std::vector<Vertex> paren(boost::num_vertices(graph));
@@ -108,6 +108,7 @@ class RandomKKT : MSTAlgorithm {
                 set_to_new[set] = boost::add_vertex(graph); //TODO: graph -> components
             }
         }
+        // create the component graph here (can also create the mapping on demand) 
         for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
             auto src = boost::source(edge, graph);
             auto dst = boost::target(edge, graph);
@@ -116,6 +117,7 @@ class RandomKKT : MSTAlgorithm {
             if (src_set != dst_set) {
                 auto src_v = set_to_new[src_set];
                 auto dst_v = set_to_new[dst_set];
+                // check hash map here (of best edges between each pair of components)
                 boost::add_edge(src_v, dst_v, weight_map[edge], components);
             }
         }
@@ -125,10 +127,11 @@ class RandomKKT : MSTAlgorithm {
         auto redundant_edge = std::vector<Edge>();
         auto component_weight_map = get(boost::edge_weight, components);
         for (auto vertex : boost::make_iterator_range(boost::vertices(components))) {
-            if (boost::degree(vertex, components)) {
+            if (boost::degree(vertex, components) == 0) {
                 isolated.push_back(vertex);
                 continue;
             }
+            // dont need this with hash map
             for (auto edge : boost::make_iterator_range(boost::out_edges(vertex, components))) {
                 auto dst = boost::target(edge, components);
                 if (is_valid[dst] == vertex) {
