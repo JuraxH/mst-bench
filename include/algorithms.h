@@ -105,7 +105,7 @@ class RandomKKT : MSTAlgorithm {
         for (auto vertex : boost::make_iterator_range(boost::vertices(graph))) {
             auto set = dsets.find_set(vertex);
             if (!set_to_new.contains(set)) {
-                set_to_new[set] = boost::add_vertex(graph);
+                set_to_new[set] = boost::add_vertex(graph); //TODO: graph -> components
             }
         }
         for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
