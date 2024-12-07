@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graph.h"
+#include "utils.h"
 
 #include <algorithm>
 #include <boost/container_hash/hash_fwd.hpp>
@@ -16,34 +17,6 @@
 #include <utility>
 
 
-// TODO: move to utils
-// how is this not in std
-template <typename T1, typename T2>
-struct PairHash {
-    std::size_t operator()(const std::pair<T1, T2>& p) const {
-        std::size_t seed = 0;
-        boost::hash_combine(seed, p.first);  // Combine hash of the first element
-        boost::hash_combine(seed, p.second); // Combine hash of the second element
-        return seed;
-    }
-};
-
-template <typename Graph>
-struct EdgeHash {
-    using Vertex = typename boost::graph_traits<Graph>::vertex_descriptor;
-    using Edge = typename boost::graph_traits<Graph>::edge_descriptor;
-
-    std::size_t operator()(const Edge& e) const {
-        const Graph* g = e.m_g; // Assuming edge holds a pointer to the graph
-        Vertex u = source(e, *g);
-        Vertex v = target(e, *g);
-
-        std::size_t seed = 0;
-        boost::hash_combine(seed, u);
-        boost::hash_combine(seed, v);
-        return seed;
-    }
-};
 
 using EdgeMap = std::unordered_map<std::pair<Vertex, Vertex>, std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>;
 inline static std::tuple<std::unordered_set<std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>, GraphType, EdgeMap>
@@ -146,7 +119,7 @@ class EdgeHeapQueue {
 // krushkal implementation computing smallest edge on demand
 class Kruskal : public MSTAlgorithm {
     public:
-    Kruskal(Graph& g) : MSTAlgorithm(g) { }
+    Kruskal(Graph& g) : MSTAlgorithm(g, "Kruskal") { }
 
     void compute_mst() override {
         size_t edges = 0;
@@ -180,7 +153,7 @@ class Kruskal : public MSTAlgorithm {
 };
 
 class RandomKKT : public MSTAlgorithm {
-    RandomKKT(Graph &g) : MSTAlgorithm(g) { }
+    RandomKKT(Graph &g) : MSTAlgorithm(g, "randomKKT") { }
 
     void compute_mst() override {
     }
@@ -188,7 +161,7 @@ class RandomKKT : public MSTAlgorithm {
 
 class Boruvka : public MSTAlgorithm {
     public:
-    Boruvka(Graph &g) : MSTAlgorithm(g) { }
+    Boruvka(Graph &g) : MSTAlgorithm(g, "boruvka") { }
 
     void compute_mst() override {
         GraphType* current = &g.graph;
@@ -221,9 +194,9 @@ class Boruvka : public MSTAlgorithm {
     }
 };
 
-inline std::vector<std::pair<std::string, std::unique_ptr<MSTAlgorithm>>> get_algorithms(Graph& g) {
-    std::vector<std::pair<std::string, std::unique_ptr<MSTAlgorithm>>> algs{};
-    algs.push_back(std::make_pair<std::string, std::unique_ptr<MSTAlgorithm>>(std::string("krushkal_on_demand_bin_heap"), std::make_unique<Kruskal>(g)));
-    algs.push_back(std::make_pair<std::string, std::unique_ptr<MSTAlgorithm>>(std::string("boruvka"), std::make_unique<Boruvka>(g)));
+inline std::vector<std::unique_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
+    std::vector<std::unique_ptr<MSTAlgorithm>> algs{};
+    algs.push_back(std::make_unique<Kruskal>(g));
+    algs.push_back(std::make_unique<Boruvka>(g));
     return algs;
 }

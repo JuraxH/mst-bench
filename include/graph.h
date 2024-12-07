@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils.h"
+
 #include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/detail/adjacency_list.hpp>
@@ -33,10 +35,6 @@ using GraphType = boost::adjacency_list<
 
 using Edge = boost::graph_traits<GraphType>::edge_descriptor;
 using Vertex = boost::graph_traits<GraphType>::vertex_descriptor;
-
-inline bool is_close(double a, double b, double tol=0.001) {
-    return std::fabs(a - b) <= tol;
-}
 
 inline void dump_as_dot(std::ostream& os, GraphType const& graph) {
     auto weightmap = get(boost::edge_weight, graph);
@@ -90,27 +88,14 @@ struct Graph {
 class MSTAlgorithm {
     public:
     Graph& g;
+    std::string name;
 
-    MSTAlgorithm(Graph& g) : g(g) { }
+    MSTAlgorithm(Graph& g, std::string name) : g(g), name(name) { }
 
     virtual void compute_mst() = 0;
     virtual double sum() = 0; // must be called only after compute_mst()
     virtual ~MSTAlgorithm() = default;
 };
-
-// who added ranges to c++20 without collect????????
-std::vector<std::string> collect(auto iter) {
-    std::vector<std::string> res{};
-    for (const auto& part : iter) {
-        std::string s{};
-        // WTF
-        for (auto e : part) {
-            s.push_back(e);
-        }
-        res.push_back(s);
-    }
-    return res;
-}
 
 inline Graph parse_graph(std::filesystem::path file) {
     auto is = std::ifstream(file);

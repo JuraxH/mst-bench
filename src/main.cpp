@@ -23,8 +23,9 @@ int main(int argc , char** argv) {
         auto g = parse_graph(graph);
         double ref = g.mst_weight();
         auto algs = get_algorithms(g);
-        for (auto& [name, alg] : algs) {
+        for (auto& alg : algs) {
             alg->compute_mst();
+            auto name = alg->name;
             double res = alg->sum();
             if (is_close(res, ref)) {
                 std::cout << name << ": passed\n";
