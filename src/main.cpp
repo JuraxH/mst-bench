@@ -24,9 +24,9 @@ int main(int argc , char** argv) {
         double ref = g.mst_weight();
         auto algs = get_algorithms(g);
         for (auto& alg : algs) {
-            alg->compute_mst();
+            auto mst = alg->compute_mst();
             auto name = alg->name;
-            double res = alg->sum();
+            double res = alg->mst_weight(mst);
             if (is_close(res, ref)) {
                 std::cout << name << ": passed\n";
             } else {

@@ -22,6 +22,8 @@
 #include <stdexcept>
 #include <string>
 #include <ranges>
+#include <variant>
+#include <vector>
 
 
 // undirected graph with weighted edges
@@ -48,21 +50,8 @@ inline void dump_as_dot(std::ostream& os, GraphType const& graph) {
 struct Graph {
     GraphType graph;
     boost::property_map<GraphType, boost::edge_weight_t>::type weight_map;
-    // datastructures needed by algorithms are all here so that they are allocated
-    // only once
-    // for uinion-find
-    std::vector<Vertex> paren;
-    std::vector<size_t> rank;
-    std::vector<Edge> edges; // prio queue in kruskal
 
-    std::vector<Edge> mst_edges; // kruskal result
-    std::vector<std::pair<Vertex, Vertex>> mst_edges_boruvka; // kruskal result
-    std::vector<Vertex> mst_preds; // prim result
-
-    Graph(size_t vertexes)
-        : graph(vertexes), weight_map(get(boost::edge_weight, graph)),
-          paren(vertexes), rank(vertexes), edges(),
-          mst_edges(vertexes - 1), mst_edges_boruvka(vertexes - 1), mst_preds(vertexes) {}
+    Graph(size_t vertexes) : graph(vertexes), weight_map(get(boost::edge_weight, graph)) { }
 
     bool is_connected() {
         std::vector<bool> visited(boost::num_vertices(graph), false);
@@ -85,6 +74,8 @@ struct Graph {
     }
 };
 
+using MST = std::variant<std::vector<Edge>, std::vector<std::pair<Vertex, Vertex>>>;
+
 class MSTAlgorithm {
     public:
     Graph& g;
@@ -92,8 +83,22 @@ class MSTAlgorithm {
 
     MSTAlgorithm(Graph& g, std::string name) : g(g), name(name) { }
 
-    virtual void compute_mst() = 0;
-    virtual double sum() = 0; // must be called only after compute_mst()
+    virtual MST compute_mst() = 0;
+
+    virtual double mst_weight(MST mst) {
+        double res = 0;
+        if (std::holds_alternative<std::vector<Edge>>(mst)) {
+            for (auto e : std::get<std::vector<Edge>>(mst)) {
+                res += g.weight_map[e];
+            }
+        } else if (std::holds_alternative<std::vector<std::pair<Vertex, Vertex>>>(mst)) {
+            for (auto [u, v] : std::get<std::vector<std::pair<Vertex, Vertex>>>(mst)) {
+                auto [edge, valid] = boost::edge(u, v, g.graph);
+                res += g.weight_map[edge];
+            }
+        }
+        return res;
+    }
     virtual ~MSTAlgorithm() = default;
 };
 
@@ -124,7 +129,6 @@ inline Graph parse_graph(std::filesystem::path file) {
         boost::add_edge(src, dst, weight, res.graph);
     }
 
-    res.edges.resize(boost::num_edges(res.graph));
     return res;
 }
 

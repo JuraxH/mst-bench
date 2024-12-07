@@ -94,68 +94,55 @@ borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old) {
     return {std::move(min_edges), std::move(components), std::move(new_to_old)};
 }
 
-class EdgeHeapQueue {
-    public:
-    Graph& g;
-    size_t size;
-    EdgeHeapQueue(Graph& g) : g(g), size(boost::num_edges(g.graph)) {
-        size_t i = 0;
-        for (auto edge : boost::make_iterator_range(boost::edges(g.graph))) {
-            g.edges[i++] = edge;
-        }
-        auto greater = [&] (Edge a, Edge b) { return g.weight_map[a] > g.weight_map[b]; };
-        std::make_heap(g.edges.begin(), g.edges.end(), greater);
-    }
-
-    Edge pop_min() {
-        assert(size != 0);
-        auto greater = [&] (Edge a, Edge b) { return g.weight_map[a] > g.weight_map[b]; };
-        std::pop_heap(g.edges.begin(), g.edges.begin() + size, greater);
-        size--;
-        return g.edges[size];
-    }
-};
-
-// krushkal implementation computing smallest edge on demand
 class Kruskal : public MSTAlgorithm {
     public:
     Kruskal(Graph& g) : MSTAlgorithm(g, "Kruskal") { }
 
-    void compute_mst() override {
-        size_t edges = 0;
+    MST compute_mst() override {
+        auto mst = std::vector<Edge>{};
+        auto weight_map = boost::get(boost::edge_weight, g.graph);
         size_t edges_in_mst = boost::num_vertices(g.graph) - 1;
-        // init edge queue
-        auto queue = EdgeHeapQueue(g);
+
+        // sort the edges
+        std::vector<std::pair<Edge, double>> edges_with_weights;
+        for (auto e : boost::make_iterator_range(boost::edges(g.graph))) {
+            edges_with_weights.emplace_back(e, weight_map[e]);
+        }
+        std::sort(edges_with_weights.begin(), edges_with_weights.end(),
+                [](const std::pair<Edge, double>& a, const std::pair<Edge, double>& b) {
+                return a.second < b.second;
+                });
+
         // init union find
+        std::vector<Vertex> paren(boost::num_vertices(g.graph));
+        std::vector<size_t> rank(boost::num_vertices(g.graph));
         boost::disjoint_sets dsets(make_iterator_property_map(
-            g.rank.begin(), get(boost::vertex_index, g.graph)), make_iterator_property_map(
-            g.paren.begin(), get(boost::vertex_index, g.graph)));
+                    rank.begin(), get(boost::vertex_index, g.graph)), make_iterator_property_map(
+                    paren.begin(), get(boost::vertex_index, g.graph)));
         for (Vertex v : boost::make_iterator_range(boost::vertices(g.graph))) {
             dsets.make_set(v);
         }
-        while (edges != edges_in_mst) {
-            auto e = queue.pop_min();
-            auto u = dsets.find_set(e.m_source);
-            auto v = dsets.find_set(e.m_target);
+
+        for (auto [edge, weight] : edges_with_weights) {
+            auto u = dsets.find_set(edge.m_source);
+            auto v = dsets.find_set(edge.m_target);
             if (u != v) {
-                g.mst_edges[edges++] = e;
+                mst.emplace_back(edge);
                 dsets.link(u, v);
             }
+            if (mst.size() == edges_in_mst) {
+                return mst;
+            }
         }
-    }
-    double sum() override {
-        double res = 0;
-        for (auto e : g.mst_edges) {
-            res += g.weight_map[e];
-        }
-        return res;
+        return mst;
     }
 };
 
 class RandomKKT : public MSTAlgorithm {
     RandomKKT(Graph &g) : MSTAlgorithm(g, "randomKKT") { }
 
-    void compute_mst() override {
+    MST compute_mst() override {
+        return {};
     }
 };
 
@@ -163,10 +150,10 @@ class Boruvka : public MSTAlgorithm {
     public:
     Boruvka(Graph &g) : MSTAlgorithm(g, "boruvka") { }
 
-    void compute_mst() override {
+    MST compute_mst() override {
         GraphType* current = &g.graph;
         GraphType tmp = GraphType();
-        g.mst_edges_boruvka.clear();
+        auto mst = std::vector<std::pair<Vertex, Vertex>>{};
         auto cur_to_old = std::optional<EdgeMap>{};
         while (boost::num_vertices(*current) > 1) {
             auto [edges, graph, map] = borůvka_step(*current, cur_to_old);
@@ -174,23 +161,10 @@ class Boruvka : public MSTAlgorithm {
             current = &tmp;
             cur_to_old = std::move(map);
             for (auto edge : edges) {
-                g.mst_edges_boruvka.push_back(edge);
+                mst.push_back(edge);
             }
         }
-    }
-
-    double sum() override {
-        double res = 0;
-        auto weight_map = get(boost::edge_weight, g.graph);
-        for (auto [u, v] : g.mst_edges_boruvka) {
-            auto [edge, valid] = boost::edge(u, v, g.graph);
-            if (!valid) {
-                std::cerr << "Edge does not exist between " << u << " and " << v << '\n';
-                continue;
-            }
-            res += weight_map[edge];
-        }
-        return res;
+        return mst;
     }
 };
 
