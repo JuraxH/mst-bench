@@ -3,6 +3,7 @@
 #include "graph.h"
 
 #include <algorithm>
+#include <boost/container_hash/hash_fwd.hpp>
 #include <boost/graph/detail/adjacency_list.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <boost/pending/disjoint_sets.hpp>
@@ -10,7 +11,115 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <tuple>
+#include <unordered_map>
 #include <utility>
+
+
+// TODO: move to utils
+// how is this not in std
+template <typename T1, typename T2>
+struct PairHash {
+    std::size_t operator()(const std::pair<T1, T2>& p) const {
+        std::size_t seed = 0;
+        boost::hash_combine(seed, p.first);  // Combine hash of the first element
+        boost::hash_combine(seed, p.second); // Combine hash of the second element
+        return seed;
+    }
+};
+
+template <typename Graph>
+struct EdgeHash {
+    using Vertex = typename boost::graph_traits<Graph>::vertex_descriptor;
+    using Edge = typename boost::graph_traits<Graph>::edge_descriptor;
+
+    std::size_t operator()(const Edge& e) const {
+        const Graph* g = e.m_g; // Assuming edge holds a pointer to the graph
+        Vertex u = source(e, *g);
+        Vertex v = target(e, *g);
+
+        std::size_t seed = 0;
+        boost::hash_combine(seed, u);
+        boost::hash_combine(seed, v);
+        return seed;
+    }
+};
+
+using EdgeMap = std::unordered_map<std::pair<Vertex, Vertex>, std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>;
+inline static std::tuple<std::unordered_set<std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>, GraphType, EdgeMap>
+borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old) {
+    auto weight_map = get(boost::edge_weight, graph);
+    std::vector<Vertex> paren(boost::num_vertices(graph));
+    std::vector<size_t> rank(boost::num_vertices(graph));
+    boost::disjoint_sets dsets(make_iterator_property_map(
+                rank.begin(), get(boost::vertex_index, graph)), make_iterator_property_map(
+                paren.begin(), get(boost::vertex_index, graph)));
+    for (Vertex v : boost::make_iterator_range(boost::vertices(graph))) {
+        dsets.make_set(v);
+    }
+    std::unordered_set<std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>> min_edges{};
+
+    for (auto vertex : boost::make_iterator_range(boost::vertices(graph))) {
+        auto min_edge = std::optional<Edge>();
+        for (auto edge : boost::make_iterator_range(boost::out_edges(vertex, graph))) {
+            if (!min_edge.has_value() || weight_map[min_edge.value()] > weight_map[edge]) {
+                min_edge = edge;
+            }
+        }
+        if (min_edge.has_value()) {
+            auto dst = boost::target(min_edge.value(), graph);
+            auto first = std::min(vertex, dst);
+            auto second = std::max(vertex, dst);
+            if (cur_to_old.has_value()) {
+                min_edges.insert(cur_to_old.value()[std::make_pair(first, second)]);
+            } else {
+                min_edges.insert(std::make_pair(first, second));
+            }
+            dsets.union_set(vertex, boost::target(min_edge.value(), graph));
+        }
+    }
+    std::unordered_map<Vertex, Vertex> set_to_new{};
+    auto components = GraphType();
+    std::unordered_map<std::pair<Vertex, Vertex>, std::tuple<double, Vertex, Vertex>, PairHash<Vertex, Vertex>> components_edges{};
+
+    for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
+        auto src = boost::source(edge, graph);
+        auto dst = boost::target(edge, graph);
+        auto src_set = dsets.find_set(src);
+        auto dst_set = dsets.find_set(dst);
+        if (src_set != dst_set) {
+            if (!set_to_new.contains(src_set)) {
+                set_to_new[src_set] = boost::add_vertex(components); 
+            }
+            if (!set_to_new.contains(dst_set)) {
+                set_to_new[dst_set] = boost::add_vertex(components);
+            }
+            auto src_v = set_to_new[src_set];
+            auto dst_v = set_to_new[dst_set];
+            // the key has a specified order so (u, v) == (v, u)
+            auto first = std::min(src, dst);
+            auto second = std::max(src, dst);
+            auto key = std::make_pair(std::min(src_v, dst_v), std::max(src_v, dst_v));
+            if (!components_edges.contains(key) ||  weight_map[edge] < std::get<0>(components_edges[key])) {
+                if (cur_to_old.has_value()) {
+                    auto [old_src, old_dst] = cur_to_old.value()[std::make_pair(first, second)];
+                    components_edges[key] = {weight_map[edge], old_src, old_dst};
+                } else {
+                    components_edges[key] = {weight_map[edge], first, second};
+                }
+            }
+        }
+    }
+    auto new_to_old = EdgeMap{};
+    for (auto [key, val] : components_edges) {
+        auto [src, dst] = key;
+        auto [weight, old_src, old_dst] = val;
+        boost::add_edge(src, dst, weight, components);
+        new_to_old[std::make_pair(src, dst)] = std::make_pair(old_src, old_dst);
+    }
+
+    return {std::move(min_edges), std::move(components), std::move(new_to_old)};
+}
 
 class EdgeHeapQueue {
     public:
@@ -70,96 +179,51 @@ class Kruskal : public MSTAlgorithm {
     }
 };
 
-class RandomKKT : MSTAlgorithm {
+class RandomKKT : public MSTAlgorithm {
     RandomKKT(Graph &g) : MSTAlgorithm(g) { }
 
     void compute_mst() override {
     }
-    // min edges can be duplicated
-    std::pair<std::vector<Edge>, GraphType> borůvka_step(GraphType& graph) {
-        auto weight_map = get(boost::edge_weight, graph);
-        std::vector<Vertex> paren(boost::num_vertices(graph));
-        std::vector<size_t> rank(boost::num_vertices(graph));
-        boost::disjoint_sets dsets(make_iterator_property_map(
-            rank.begin(), get(boost::vertex_index, graph)), make_iterator_property_map(
-            paren.begin(), get(boost::vertex_index, graph)));
-        for (Vertex v : boost::make_iterator_range(boost::vertices(graph))) {
-            dsets.make_set(v);
-        }
-        std::vector<Edge> min_edges{};
-        for (auto vertex : boost::make_iterator_range(boost::vertices(graph))) {
-            auto min_edge = std::optional<Edge>();
-            for (auto edge : boost::make_iterator_range(boost::out_edges(vertex, graph))) {
-                if (!min_edge.has_value() || weight_map[min_edge.value()] > weight_map[edge]) {
-                    min_edge = edge;
-                }
-            }
-            if (min_edge.has_value()) {
-                min_edges.push_back(min_edge.value());
-                dsets.union_set(vertex, boost::source(min_edge.value(), graph));
+};
+
+class Boruvka : public MSTAlgorithm {
+    public:
+    Boruvka(Graph &g) : MSTAlgorithm(g) { }
+
+    void compute_mst() override {
+        GraphType* current = &g.graph;
+        GraphType tmp = GraphType();
+        g.mst_edges_boruvka.clear();
+        auto cur_to_old = std::optional<EdgeMap>{};
+        while (boost::num_vertices(*current) > 1) {
+            auto [edges, graph, map] = borůvka_step(*current, cur_to_old);
+            tmp = std::move(graph);
+            current = &tmp;
+            cur_to_old = std::move(map);
+            for (auto edge : edges) {
+                g.mst_edges_boruvka.push_back(edge);
             }
         }
-        // TODO think of better mapping
-        std::unordered_map<Vertex, Vertex> set_to_new{};
-        auto components = GraphType();
-        for (auto vertex : boost::make_iterator_range(boost::vertices(graph))) {
-            auto set = dsets.find_set(vertex);
-            if (!set_to_new.contains(set)) {
-                set_to_new[set] = boost::add_vertex(graph); //TODO: graph -> components
-            }
-        }
-        // create the component graph here (can also create the mapping on demand) 
-        for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
-            auto src = boost::source(edge, graph);
-            auto dst = boost::target(edge, graph);
-            auto src_set = dsets.find_set(src);
-            auto dst_set = dsets.find_set(dst);
-            if (src_set != dst_set) {
-                auto src_v = set_to_new[src_set];
-                auto dst_v = set_to_new[dst_set];
-                // check hash map here (of best edges between each pair of components)
-                boost::add_edge(src_v, dst_v, weight_map[edge], components);
-            }
-        }
-        auto is_valid = std::vector<Vertex>(boost::num_vertices(components), std::numeric_limits<Vertex>::max());
-        auto current_edge = std::vector<std::optional<Edge>>(boost::num_vertices(components));
-        auto isolated = std::vector<Vertex>();
-        auto redundant_edge = std::vector<Edge>();
-        auto component_weight_map = get(boost::edge_weight, components);
-        for (auto vertex : boost::make_iterator_range(boost::vertices(components))) {
-            if (boost::degree(vertex, components) == 0) {
-                isolated.push_back(vertex);
+    }
+
+    double sum() override {
+        double res = 0;
+        auto weight_map = get(boost::edge_weight, g.graph);
+        for (auto [u, v] : g.mst_edges_boruvka) {
+            auto [edge, valid] = boost::edge(u, v, g.graph);
+            if (!valid) {
+                std::cerr << "Edge does not exist between " << u << " and " << v << '\n';
                 continue;
             }
-            // dont need this with hash map
-            for (auto edge : boost::make_iterator_range(boost::out_edges(vertex, components))) {
-                auto dst = boost::target(edge, components);
-                if (is_valid[dst] == vertex) {
-                    if (component_weight_map[current_edge[dst].value()] > component_weight_map[edge]) {
-                        redundant_edge.push_back(current_edge[dst].value());
-                        current_edge[dst] = edge;
-                    } else {
-                        redundant_edge.push_back(edge);
-                    }
-                } else {
-                    is_valid[dst] = vertex;
-                    current_edge[dst] = edge;
-                }
-            }
+            res += weight_map[edge];
         }
-        for (auto edge : redundant_edge) {
-            boost::remove_edge(edge, components);
-        }
-        for (auto vertex : isolated) {
-            boost::remove_vertex(vertex, components);
-        }
-
-        return std::make_pair(std::move(min_edges), std::move(components));
+        return res;
     }
 };
 
 inline std::vector<std::pair<std::string, std::unique_ptr<MSTAlgorithm>>> get_algorithms(Graph& g) {
     std::vector<std::pair<std::string, std::unique_ptr<MSTAlgorithm>>> algs{};
     algs.push_back(std::make_pair<std::string, std::unique_ptr<MSTAlgorithm>>(std::string("krushkal_on_demand_bin_heap"), std::make_unique<Kruskal>(g)));
+    algs.push_back(std::make_pair<std::string, std::unique_ptr<MSTAlgorithm>>(std::string("boruvka"), std::make_unique<Boruvka>(g)));
     return algs;
 }

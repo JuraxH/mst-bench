@@ -38,6 +38,15 @@ inline bool is_close(double a, double b, double tol=0.001) {
     return std::fabs(a - b) <= tol;
 }
 
+inline void dump_as_dot(std::ostream& os, GraphType const& graph) {
+    auto weightmap = get(boost::edge_weight, graph);
+    boost::write_graphviz(os, graph,
+            boost::default_writer(),
+            [&](std::ostream& out, const auto& p) {
+            out << "[label=\"" << weightmap[p] << "\"]";
+            });
+}
+
 struct Graph {
     GraphType graph;
     boost::property_map<GraphType, boost::edge_weight_t>::type weight_map;
@@ -49,21 +58,13 @@ struct Graph {
     std::vector<Edge> edges; // prio queue in kruskal
 
     std::vector<Edge> mst_edges; // kruskal result
+    std::vector<std::pair<Vertex, Vertex>> mst_edges_boruvka; // kruskal result
     std::vector<Vertex> mst_preds; // prim result
 
     Graph(size_t vertexes)
         : graph(vertexes), weight_map(get(boost::edge_weight, graph)),
           paren(vertexes), rank(vertexes), edges(),
-          mst_edges(vertexes - 1), mst_preds(vertexes) {}
-
-    void to_dot(std::ostream& os) {
-        auto weightmap = get(boost::edge_weight, graph);
-        boost::write_graphviz(os, graph,
-                boost::default_writer(),
-                [&](std::ostream& out, const auto& p) {
-                    out << "[label=\"" << weightmap[p] << "\"]";
-                });
-    }
+          mst_edges(vertexes - 1), mst_edges_boruvka(vertexes - 1), mst_preds(vertexes) {}
 
     bool is_connected() {
         std::vector<bool> visited(boost::num_vertices(graph), false);
