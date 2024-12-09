@@ -1,0 +1,249 @@
+#include "lca.h"
+
+// This code is taken from and only slightly modified to fit our graph:
+// https://cp-algorithms.com/graph/lca_farachcoltonbender.html
+
+size_t LCA::lca(size_t u, size_t v) {
+    auto l = first_visit[u];
+    auto r = first_visit[v];
+    if (l > r) {
+        using std::swap;
+        swap(l, r);
+    }
+    size_t bl = l / block_size; 
+    size_t br = r / block_size;
+    if (bl == br) {
+        return euler_tour[lca_in_block(bl, l % block_size, r % block_size)];
+    }
+    size_t l_min = lca_in_block(bl, l % block_size, block_size - 1);
+    size_t r_min = lca_in_block(br, 0, r % block_size);
+    auto min = min_by_height(l_min, r_min);
+    if (bl + 1 < br) { // interval longer than 2 blocks
+        size_t half_log_len = log2(br - bl - 1);
+        size_t first_half = bl + 1;
+        size_t second_half = br - (1 << half_log_len);
+        l_min = sparse_table[first_half][half_log_len];
+        r_min = sparse_table[second_half][half_log_len];
+        min = min_by_height(min, min_by_height(l_min, r_min));
+    }
+    return euler_tour[min];
+}
+
+size_t LCA::lca_in_block(size_t block_index, size_t in_block_index, size_t interval_length) {
+    auto block_offset = block_index * block_size;
+    return blocks[block_mask[block_index]][in_block_index][interval_length] + block_offset;
+}
+
+void LCA::build_euler_tour() {
+    euler_tour.reserve(euler_size);
+    using AdjIterator = boost::graph_traits<GraphType>::adjacency_iterator;
+    // cur, from, height, begin, end
+    std::vector<std::tuple<Vertex, Vertex, size_t, AdjIterator, AdjIterator>> stack{};
+    auto [begin, end] = boost::adjacent_vertices(root, graph);
+    stack.push_back({root, std::numeric_limits<Vertex>::max(), 0, begin, end});
+    while (!stack.empty()) {
+        auto [cur, prev, h, begin, end] = stack.back();
+        stack.pop_back();
+        if (boost::adjacent_vertices(cur, graph).first == begin) {
+            first_visit[cur] = euler_tour.size();
+            height[cur] = h;
+        }
+        euler_tour.push_back(cur);
+        if (begin == end) {
+            continue;
+        }
+        auto next = *begin;
+        ++begin;
+        if (next == prev) {
+            if (begin == end) {
+                continue;
+            }
+            next = *begin;
+            begin++;
+        }
+        stack.push_back({cur, prev, h, begin, end});
+        auto [next_begin, next_end] = boost::adjacent_vertices(next, graph);
+        stack.push_back({next, cur, h + 1, next_begin, next_end});
+    }
+}
+
+void LCA::build_sparse_table() {
+    for (size_t i = 0, block_index = 0, cur_block = 0; i < euler_size; i++, block_index++) {
+        if (block_index == block_size) {
+            block_index = 0;
+            cur_block++;
+        }
+        // find the minimum of each block
+        if (block_index == 0 || (min_by_height(i, sparse_table[cur_block][0]) == i)) {
+            sparse_table[cur_block][0] = i;
+        }
+        // building mask for the current block
+        // testing if height of current possition is prev + 1 if true add +
+        if (block_index > 0 && (min_by_height(i - 1, i) == i - 1)) {
+            size_t bit_index = block_index - 1;
+            block_mask[block_index] += 1 << bit_index; // marking as +
+        }
+    }
+    // compute mins for squares of blocks
+    for (size_t log_length = 1; log_length <= log2(block_cnt); log_length++) {
+        size_t prev_length = log_length - 1;
+        for (size_t i = 0; i < block_cnt; i++) {
+            size_t next_block = i + (1 << prev_length);
+            size_t cur_min = sparse_table[i][prev_length];
+            if (next_block >= block_cnt) {
+                sparse_table[i][log_length] = cur_min;
+            } else {
+                sparse_table[i][log_length] = min_by_height(cur_min, sparse_table[next_block][prev_length]);
+            }
+        }
+    }
+}
+
+void LCA::build_rmq() {
+    auto computed = std::vector<bool>(blocks.size(), false);
+    for (size_t cur_block = 0; cur_block < block_cnt; cur_block++) {
+        auto mask = block_mask[cur_block];
+        if (computed[mask]) {
+            continue;
+        }
+        computed[mask] = true;
+        auto block_offset = cur_block * block_size;
+        // compute the min of each sub interval 
+        for (size_t l = 0; l < block_size; l++) {
+            blocks[mask][l][l] = l; // the min of [l, l]
+                                    // compute min for all interval sizes in block
+            for (size_t r = l + 1; r < block_size; r++) {
+                blocks[mask][l][r] = blocks[mask][l][r - 1];
+                auto cur_min_pos = block_offset + blocks[mask][l][r];
+                auto orig_pos = r + block_offset;
+                if (orig_pos < euler_size) {
+                    blocks[mask][l][r] = min_by_height(cur_min_pos, orig_pos) - block_offset;
+                }
+            }
+        }
+    }
+}
+
+std::string LCA::dump() {
+    auto res = std::string{};
+    dump_as_dot(std::cout, graph);
+    res += "graph with root: " + std::to_string(root) + '\n';
+    res += "edges: " + std::to_string(edges) + '\n';
+    res += "euler_size: " + std::to_string(euler_size) + '\n';
+    res += "block_size: " + std::to_string(block_size) + '\n';
+    res += "block_cnt: " + std::to_string(block_cnt) + '\n';
+    res += "edges: " + std::to_string(edges) + '\n';
+    res += "nodes:       ";
+    res += dump_vector(euler_tour);
+    res += "height:      ";
+    res += dump_vector(height);
+    res += "first_visit: ";
+    res += dump_vector(first_visit);
+    //res += dump_blocks();
+    res += dump_sparse_table();
+    return res;
+}
+
+
+std::string LCA::dump_blocks() {
+    auto res = std::string{};
+    for (size_t i = 0; i < block_cnt; i++) {
+        res += dump_block(i);
+    }
+    return res;
+}
+
+std::string LCA::dump_block(size_t block_index) {
+    auto block_offset = block_index * block_size;
+    auto mask = block_mask[block_index];
+    auto ref_h = height[euler_tour[block_offset]];
+    auto res = std::string{};
+    res += "block: " + std::to_string(block_index);
+    res += " start_h: " + std::to_string(ref_h) + '\n';
+    auto signs = std::string{};
+    auto vals = std::string{};
+    size_t cur_val = ref_h;
+    for (size_t i = 1; i < block_size; i++) {
+        size_t cur_bit = 1 << (i - 1);
+        if (mask & cur_bit) {
+            signs += '+';
+            cur_val += 1;
+        } else {
+            signs += '-';
+            cur_val -= 1;
+        }
+        vals += std::to_string(cur_val);
+    }
+    res += signs + '\n' + vals + '\n';
+    // min of intervals
+    for (size_t l = 0; l < block_size; l++) {
+        res += "min [" + std::to_string(l) + ", ...]\n";
+        for (size_t r = l; r < block_size; r++) {
+            res += std::to_string(blocks[mask][l][r]) + " ";
+        }
+        res += '\n';
+    }
+    return res;
+}
+
+std::string LCA::dump_sparse_table() {
+    auto res = std::string{};
+    for (size_t log_length = 0; log_length <= log2(block_cnt); log_length++) {
+        res += "min of " + std::to_string(log_length) + " blocks: ";
+        for (size_t i = 0; i < block_cnt; i++) {
+            auto cur_min = sparse_table[i][log_length];
+            res += std::to_string(cur_min) + "(" + std::to_string(euler_tour[cur_min]) + "), ";
+        }
+        res += '\n';
+    }
+    return res;
+}
+
+size_t naive_lca(GraphType& g, size_t u, size_t v, size_t root) {
+    auto to_v = find_path(g, u, v);
+    auto to_root = find_path(g, u, root);
+    auto len = std::max(to_v.size(), to_root.size());
+    size_t i = 0;
+    for (; i < len; i++) {
+        if (to_v[i] != to_root[i]) {
+            break;
+        }
+    }
+    return to_root[i - 1];
+}
+
+GraphType test_tree() {
+    std::vector<std::pair<int, int>> edges = {
+        {0, 1}, {0, 2}, {1, 3}, {1, 4}, {2, 5}, {2, 6}
+    };
+    std::vector<double> weights = {
+        1.5, 2.3, 0.9, 1.2, 3.1, 2.8
+    };
+    return GraphType(edges.begin(), edges.end(), weights.begin(), 7);
+}
+
+bool test_euler_tour() {
+    auto t = test_tree();
+    auto expected_nodes = std::vector<size_t>{0,1,3,1,4,1,0,2,5,2,6,2,0};
+    auto expected_height = std::vector<size_t>{0,1,1,2,2,2,2};
+    auto expected_first_visit = std::vector<size_t>{0,1,7,2,4,8,10};
+    auto lca = LCA(t, 0);
+    return expected_nodes == lca.euler_tour && expected_height == lca.height && expected_first_visit == lca.first_visit;
+}
+
+bool test_lca() {
+    auto t = test_tree();
+    auto lca = LCA(t, 0);
+    auto queries = std::vector<std::tuple<size_t, size_t>>{{3,0}, {3,1}, {3,2}, {3,5}, {3,6}, {4,5}, {1, 2}, {5, 6}};
+    auto expected_lca = std::vector<size_t>{0, 1, 0, 0, 0, 0, 0, 2};
+    for (size_t i = 0; i < queries.size(); i++) {
+        auto [u, v] = queries[i];
+        auto res = lca.lca(u, v);
+        auto naive_res = naive_lca(t, u, v, 0);
+        if (res != expected_lca[i] && naive_res == expected_lca[i]) {
+            std::cerr << "failed at query: " << std::get<0>(queries[i]) << ", " << std::get<1>(queries[i])  << " got: " << res << " expected: " << expected_lca[i] << '\n';
+            return false;
+        }
+    }
+    return true;
+}

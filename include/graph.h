@@ -60,3 +60,5 @@ class MSTAlgorithm {
 };
 
 std::vector<std::unique_ptr<MSTAlgorithm>> get_algorithms(Graph& g);
+
+std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end);

@@ -2,9 +2,31 @@
 
 #include <boost/container_hash/hash_fwd.hpp>
 #include <cmath>
+#include <iostream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
+#include <bit>
+
+// floor of log2(n)
+template<typename T>
+T log2(T n) {
+    if (n == 0) {
+        return 0;
+    }
+    return std::bit_width(n) - 1;
+}
+
+
+template<typename T>
+std::string dump_vector(const std::vector<T>& arr) {
+    auto res = std::string{};
+    for (const auto& elem : arr) {
+        res += std::to_string(elem) + " ";
+    }
+    return res + '\n';
+}
 
 // how is this not in std
 template <typename T1, typename T2>

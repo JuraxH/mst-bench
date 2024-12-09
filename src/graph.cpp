@@ -3,6 +3,8 @@
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
+#include <boost/graph/subgraph.hpp>
+#include <limits>
 #include <ranges>
 
 
@@ -159,4 +161,25 @@ std::vector<std::unique_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
     algs.push_back(std::make_unique<Kruskal>(g));
     algs.push_back(std::make_unique<Boruvka>(g));
     return algs;
+}
+
+std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end) {
+    std::vector<Vertex> predecessors(boost::num_vertices(g), std::numeric_limits<Vertex>::max());
+
+    auto bfs_visitor = boost::make_bfs_visitor(
+        boost::record_predecessors(predecessors.data(), boost::on_tree_edge{})
+    );
+
+    boost::breadth_first_search(g, start, boost::visitor(bfs_visitor));
+
+    std::vector<Vertex> path;
+    for (Vertex v = end; v != start; v = predecessors[v]) {
+        if (v == std::numeric_limits<Vertex>::max()) {
+            return {};
+        }
+        path.push_back(v);
+    }
+    path.push_back(start);
+    std::reverse(path.begin(), path.end());
+    return path;
 }
