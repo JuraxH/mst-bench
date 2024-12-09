@@ -57,3 +57,19 @@ std::vector<std::string> collect(auto iter) {
 inline bool is_close(double a, double b, double tol=0.001) {
     return std::fabs(a - b) <= tol;
 }
+
+inline std::string bool_to_str(bool val) {
+    return val ? "true" : "false";
+}
+
+inline std::string to_json(std::vector<std::pair<std::string, std::string>> dict) {
+        auto res = std::string{};
+        res += "{";
+        for (size_t i = 0; i < dict.size(); i++) {
+            if (i != 0) {
+                res += ',';
+            }
+            res += "\n\"" + dict[i].first + "\" : " + dict[i].second;
+        }
+        return res + "\n}\n";
+}

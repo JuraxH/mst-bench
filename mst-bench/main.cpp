@@ -1,30 +1,34 @@
+#include "graph.h"
+#include "algorithms.h"
+#include "lca.h"
+#include "utils.h"
+
 #include <algorithm>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 
-#include "graph.h"
-#include "algorithms.h"
 #include <argparse/argparse.hpp>
 #include <memory>
+#include <stdexcept>
 #include <unordered_set>
 
-#include "lca.h"
-#include "utils.h"
 
 struct AlgRunner {
     std::filesystem::path graph_file;
     Graph graph;
     std::vector<std::shared_ptr<MSTAlgorithm>> algs_to_run;
 
-    AlgRunner(std::filesystem::path graph_file, std::unordered_set<std::string> filter)
+    AlgRunner(std::filesystem::path graph_file, std::vector<std::string> filter)
         : graph_file(graph_file)
         , graph(parse_graph(graph_file))
         , algs_to_run(get_algorithms(graph))
     {
         if (!filter.empty()) {
+            auto filter_s = std::unordered_set<std::string>{};
+            filter_s.insert(filter.begin(), filter.end());
             for (auto it = algs_to_run.begin(); it != algs_to_run.end(); ) {
-                if (filter.contains(it->get()->name)) {
+                if (filter_s.contains(it->get()->name)) {
                     it = algs_to_run.erase(it);
                 } else {
                     ++it;
@@ -44,7 +48,13 @@ struct AlgRunner {
 
 struct TestRunner : public AlgRunner {
     double ref_res;
-    TestRunner(std::filesystem::path graph_file, std::unordered_set<std::string> filter) : AlgRunner(graph_file, filter), ref_res(graph.mst_weight()) { }
+    std::vector<bool> results;
+
+    TestRunner(std::filesystem::path graph_file, std::vector<std::string> filter)
+        : AlgRunner(graph_file, filter)
+        , ref_res(graph.mst_weight())
+        , results()
+    { }
     
     virtual void run() override {
         std::cerr << "running tests on " << graph_file << ":\n";
@@ -55,17 +65,26 @@ struct TestRunner : public AlgRunner {
             auto mst = alg.compute_mst();
             double res = alg.mst_weight(mst);
             if (is_close(res, ref_res)) {
+                results.push_back(true);
                 std::cerr << alg.name << ": passed\n";
             } else {
+                results.push_back(false);
                 std::cerr << alg.name << ": failed expected: \n" << ref_res << " got: " << res << '\n';
             }
+    }
+
+    std::string res_as_json() {
+        auto dict = std::vector<std::pair<std::string, std::string>>{};
+        for (size_t i = 0; i < algs_to_run.size(); i++) {
+            dict.emplace_back(algs_to_run[i]->name, bool_to_str(results[i]));
+        }
+        return to_json(dict);
     }
 };
 
 int main(int argc , char** argv) {
     argparse::ArgumentParser program("mst-bench");
 
-    std::cerr << "building the test command" << std::endl;
     auto test_command = argparse::ArgumentParser("test");
     test_command.add_description("verifies that impls of mst algs get the same result as boost impl");
     test_command.add_argument("graph")
@@ -78,8 +97,14 @@ int main(int argc , char** argv) {
     auto ls_command = argparse::ArgumentParser("ls");
     ls_command.add_description("list runable algorithms for computing mst");
 
+    auto info_command = argparse::ArgumentParser("info");
+    info_command.add_description("prints info about given graph in json");
+    info_command.add_argument("graph")
+        .help("path to the file of the graph");
+
     program.add_subparser(test_command);
     program.add_subparser(ls_command);
+    program.add_subparser(info_command);
 
     try {
         std::cerr << "starting the parsing" << std::endl;
@@ -94,12 +119,10 @@ int main(int argc , char** argv) {
     std::cerr << "checking test_command" << std::endl;
     if (program.is_subcommand_used(test_command)) {
         auto graph = test_command.get("graph");
-        auto algs_to_run = test_command.get<std::vector<std::string>>("filter");
-        auto filter = std::unordered_set<std::string>{};
-        filter.insert(algs_to_run.begin(), algs_to_run.end());
-
+        auto filter = test_command.get<std::vector<std::string>>("filter");
         auto test_runner = TestRunner(graph, filter);
         test_runner.run();
+        std::cout << test_runner.res_as_json();
         return 0;
     }
     if (program.is_subcommand_used(ls_command)) {
@@ -109,6 +132,15 @@ int main(int argc , char** argv) {
             auto name = alg->name;
             std::cout << name << std::endl;
         }
+    }
+    if (program.is_subcommand_used(info_command)) {
+        auto graph = info_command.get("graph");
+        auto g = parse_graph(graph);
+        std::vector<std::pair<std::string, std::string>> info;
+        info.emplace_back("connected", bool_to_str(g.is_connected()));
+        info.emplace_back("vertices", std::to_string(boost::num_vertices(g.graph)));
+        info.emplace_back("edges", std::to_string(boost::num_edges(g.graph)));
+        std::cout << to_json(info);
     }
     return 0;
 }
