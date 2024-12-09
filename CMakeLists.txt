@@ -26,7 +26,7 @@ file(GLOB BENCH_FILES "${CMAKE_SOURCE_DIR}/mst-bench/*.cpp")
 file(GLOB TEST_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
 
 # library for computing mst
-add_library(mst-lib src/boruvka.cpp src/graph.cpp src/kruskal.cpp src/lca.cpp src/randomKKT.cpp)
+add_library(mst-lib ${SRC_FILES})
 target_include_directories(mst-lib PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_compile_options(mst-lib PRIVATE -g -Wall -Wextra -pedantic)
 
