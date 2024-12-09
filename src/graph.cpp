@@ -84,7 +84,9 @@ Graph parse_graph(std::filesystem::path file) {
 
     while (std::getline(is, line)) {
         auto tmp = collect(line | std::ranges::views::split(' '));
-        assert(tmp.size() == 3);
+        if (tmp.size() != 3) {
+            continue;
+        }
         size_t src = std::stoi(tmp[0]);
         size_t dst = std::stoi(tmp[1]);
         double weight = std::stod(tmp[2]);
