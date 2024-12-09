@@ -47,6 +47,18 @@ double MSTAlgorithm::mst_weight(MST mst) {
             auto [edge, valid] = boost::edge(u, v, g.graph);
             res += g.weight_map[edge];
         }
+    } else if (std::holds_alternative<PredecessorMap>(mst)) {
+        auto null_vertex = boost::graph_traits<GraphType>::null_vertex();
+        auto& parent = std::get<PredecessorMap>(mst);
+        for (size_t u = 0; u < parent.size(); u++) {
+            auto v = parent[u];
+            // skip the root
+            if (v == null_vertex) {
+                continue;
+            }
+            auto edge = boost::edge(u, v, g.graph).first;
+            res += g.weight_map[edge];
+        }
     }
     return res;
 }
@@ -154,13 +166,6 @@ borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old) {
     }
 
     return {std::move(min_edges), std::move(components), std::move(new_to_old)};
-}
-
-std::vector<std::unique_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
-    std::vector<std::unique_ptr<MSTAlgorithm>> algs{};
-    algs.push_back(std::make_unique<Kruskal>(g));
-    algs.push_back(std::make_unique<Boruvka>(g));
-    return algs;
 }
 
 std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end) {

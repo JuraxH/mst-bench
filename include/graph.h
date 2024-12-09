@@ -44,21 +44,4 @@ using EdgeSet = std::unordered_set<std::pair<Vertex, Vertex>, PairHash<Vertex, V
 std::tuple<EdgeSet, GraphType, EdgeMap>
 borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old);
 
-using MST = std::variant<std::vector<Edge>, std::vector<std::pair<Vertex, Vertex>>>;
-
-class MSTAlgorithm {
-    public:
-    Graph& g;
-    std::string name;
-
-    MSTAlgorithm(Graph& g, std::string name) : g(g), name(name) { }
-
-    virtual MST compute_mst() = 0;
-
-    double mst_weight(MST mst);
-    virtual ~MSTAlgorithm() = default;
-};
-
-std::vector<std::unique_ptr<MSTAlgorithm>> get_algorithms(Graph& g);
-
 std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end);
