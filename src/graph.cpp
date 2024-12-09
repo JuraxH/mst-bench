@@ -6,6 +6,7 @@
 #include <boost/graph/subgraph.hpp>
 #include <limits>
 #include <ranges>
+#include <unordered_set>
 
 
 void dump_as_dot(std::ostream& os, GraphType const& graph) {
@@ -166,6 +167,19 @@ borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old) {
     }
 
     return {std::move(min_edges), std::move(components), std::move(new_to_old)};
+}
+
+bool all_edge_weights_unique(GraphType const& g) {
+    auto weight_map = get(boost::edge_weight, g);
+    std::unordered_set<double> weights{};
+    for (Edge e : boost::make_iterator_range(boost::edges(g))) {
+        auto weight = weight_map[e];
+        if (weights.contains(weight)) {
+            return false;
+        }
+        weights.insert(weight);
+    }
+    return true;
 }
 
 std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end) {

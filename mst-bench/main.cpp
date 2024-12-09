@@ -153,7 +153,6 @@ int main(int argc , char** argv) {
     program.add_subparser(bench_command);
 
     try {
-        std::cerr << "starting the parsing" << std::endl;
         program.parse_args(argc, argv);
     } catch (std::exception const& err) {
         std::cerr << "failed to parse args" << std::endl;
@@ -162,7 +161,6 @@ int main(int argc , char** argv) {
         return 1;
     }
 
-    std::cerr << "checking test_command" << std::endl;
     if (program.is_subcommand_used(test_command)) {
         auto graph = test_command.get("graph");
         auto filter = test_command.get<std::vector<std::string>>("filter");
@@ -184,6 +182,7 @@ int main(int argc , char** argv) {
         auto g = parse_graph(graph);
         std::vector<std::pair<std::string, std::string>> info;
         info.emplace_back("connected", bool_to_str(g.is_connected()));
+        info.emplace_back("unique_weights", bool_to_str(all_edge_weights_unique(g.graph)));
         info.emplace_back("vertices", std::to_string(boost::num_vertices(g.graph)));
         info.emplace_back("edges", std::to_string(boost::num_edges(g.graph)));
         std::cout << to_json(info);
