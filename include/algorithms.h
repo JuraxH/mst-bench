@@ -34,20 +34,27 @@ class MSTAlgorithm {
 
 class Kruskal : public MSTAlgorithm {
     public:
-    Kruskal(Graph& g) : MSTAlgorithm(g, "Kruskal") { }
+    Kruskal(Graph& g) : MSTAlgorithm(g, "kruskal") { }
 
     MST compute_mst() override;
 };
 
 class RandomKKT : public MSTAlgorithm {
-    RandomKKT(Graph &g) : MSTAlgorithm(g, "randomKKT") { }
+    RandomKKT(Graph &g) : MSTAlgorithm(g, "random_KKT") { }
 
     MST compute_mst() override;
 };
 
 class PrimBinHeap : public MSTAlgorithm {
     public:
-    PrimBinHeap(Graph &g) : MSTAlgorithm(g, "PrimBinHeap") { }
+    PrimBinHeap(Graph &g) : MSTAlgorithm(g, "prim_bin_heap") { }
+
+    MST compute_mst() override;
+};
+
+class PrimFibHeap : public MSTAlgorithm {
+    public:
+    PrimFibHeap(Graph &g) : MSTAlgorithm(g, "prim_fib_heap") { }
 
     MST compute_mst() override;
 };
@@ -64,5 +71,6 @@ inline std::vector<std::unique_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
     algs.push_back(std::make_unique<Kruskal>(g));
     algs.push_back(std::make_unique<Boruvka>(g));
     algs.push_back(std::make_unique<PrimBinHeap>(g));
+    algs.push_back(std::make_unique<PrimFibHeap>(g));
     return algs;
 }
