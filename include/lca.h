@@ -68,5 +68,3 @@ class LCA {
     std::string dump_sparse_table();
 };
 
-// slow, only for testing
-size_t naive_lca(GraphType& g, size_t u, size_t v, size_t root);

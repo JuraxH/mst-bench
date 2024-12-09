@@ -188,3 +188,40 @@ std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end) {
     std::reverse(path.begin(), path.end());
     return path;
 }
+
+size_t naive_lca(GraphType& g, size_t u, size_t v, size_t root) {
+    auto to_v = find_path(g, u, v);
+    auto to_root = find_path(g, u, root);
+    auto len = std::max(to_v.size(), to_root.size());
+    size_t i = 0;
+    for (; i < len; i++) {
+        if (to_v[i] != to_root[i]) {
+            break;
+        }
+    }
+    return to_root[i - 1];
+}
+
+Edge find_path_maxima_naive(GraphType& g, Vertex u, Vertex v, Vertex root) {
+    auto lca = naive_lca(g, u, v, root);
+    auto weight_map = get(boost::edge_weight, g);
+    auto u_path = find_path(g, u, lca);
+    auto v_path = find_path(g, v, lca);
+
+    auto max_edge = [&] (Edge a, Edge b) {
+        return weight_map[a] > weight_map[b] ? a : b;
+    };
+
+    auto find_max = [&] (auto path) {
+        Edge max = boost::edge(path[0], path[1], g).first;
+        for (size_t i = 2; i < path.size(); i++) {
+            auto prev = i - 1;
+            auto edge = boost::edge(path[prev], path[i], g).first;
+            max = max_edge(max, edge);
+        }
+        return max;
+    };
+    auto u_max = find_max(u_path); 
+    auto v_max = find_max(v_path); 
+    return max_edge(u_max, v_max);
+}

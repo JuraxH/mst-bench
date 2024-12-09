@@ -199,16 +199,3 @@ std::string LCA::dump_sparse_table() {
     return res;
 }
 
-size_t naive_lca(GraphType& g, size_t u, size_t v, size_t root) {
-    auto to_v = find_path(g, u, v);
-    auto to_root = find_path(g, u, root);
-    auto len = std::max(to_v.size(), to_root.size());
-    size_t i = 0;
-    for (; i < len; i++) {
-        if (to_v[i] != to_root[i]) {
-            break;
-        }
-    }
-    return to_root[i - 1];
-}
-

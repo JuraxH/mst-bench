@@ -45,3 +45,10 @@ std::tuple<EdgeSet, GraphType, EdgeMap>
 borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old);
 
 std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end);
+
+// slow, only for testing
+// graph needs to be tree and u, v list nodes
+Edge find_path_maxima_naive(GraphType& g, Vertex u, Vertex v, Vertex root);
+
+// slow, only for testing
+size_t naive_lca(GraphType& g, size_t u, size_t v, size_t root);

@@ -1,4 +1,6 @@
+#include <boost/graph/subgraph.hpp>
 #include <boost/ut.hpp>
+#include "graph.h"
 #include "lca.h"
 
 #include <stdexcept>
@@ -57,5 +59,31 @@ int main() {
                 expect(false);
             }
         }
+    };
+
+    "lca/naive"_test = [] {
+        auto t = test_tree();
+        Vertex root = 0;
+
+        auto max = find_path_maxima_naive(t, 3, 6, root);
+        auto src = boost::source(max, t);
+        auto dst = boost::target(max, t);
+        expect(src == 6);
+        expect(dst == 2);
+        max = find_path_maxima_naive(t, 3, 4, root);
+        src = boost::source(max, t);
+        dst = boost::target(max, t);
+        expect(src == 4);
+        expect(dst == 1);
+        max = find_path_maxima_naive(t, 3, 5, root);
+        src = boost::source(max, t);
+        dst = boost::target(max, t);
+        expect(src == 5);
+        expect(dst == 2);
+        max = find_path_maxima_naive(t, 4, 6, root);
+        src = boost::source(max, t);
+        dst = boost::target(max, t);
+        expect(src == 6);
+        expect(dst == 2);
     };
 }
