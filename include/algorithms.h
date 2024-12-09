@@ -66,11 +66,11 @@ class Boruvka : public MSTAlgorithm {
     MST compute_mst() override;
 };
 
-inline std::vector<std::unique_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
-    std::vector<std::unique_ptr<MSTAlgorithm>> algs{};
-    algs.push_back(std::make_unique<Kruskal>(g));
-    algs.push_back(std::make_unique<Boruvka>(g));
-    algs.push_back(std::make_unique<PrimBinHeap>(g));
-    algs.push_back(std::make_unique<PrimFibHeap>(g));
+inline std::vector<std::shared_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
+    std::vector<std::shared_ptr<MSTAlgorithm>> algs{};
+    algs.push_back(std::make_shared<Kruskal>(g));
+    algs.push_back(std::make_shared<Boruvka>(g));
+    algs.push_back(std::make_shared<PrimBinHeap>(g));
+    algs.push_back(std::make_shared<PrimFibHeap>(g));
     return algs;
 }

@@ -32,7 +32,7 @@ target_compile_options(mst-lib PRIVATE -g -Wall -Wextra -pedantic)
 
 # executable with cli interface for runing stuff needed for the benchmark
 add_executable(${PROJECT_NAME} ${BENCH_FILES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/mst-bench")
 target_link_libraries(${PROJECT_NAME} argparse mst-lib)
 target_compile_options(${PROJECT_NAME} PRIVATE -g -Wall -Wextra -pedantic)
 
