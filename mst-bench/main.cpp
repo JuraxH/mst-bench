@@ -38,17 +38,5 @@ int main(int argc , char** argv) {
             }
         }
     }
-    // TODO improve this or use some framework
-    if (command == std::string("unit_tests")) {
-        if (!test_euler_tour()) {
-            std::cout << "test_euler_tour failed\n";
-            return 1;
-        }
-        if (!test_lca()) {
-            std::cout << "test_euler_tour failed\n";
-            return 1;
-        }
-        std::cout << "all tests passed\n";
-    }
     return 0;
 }

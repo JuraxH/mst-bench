@@ -70,10 +70,3 @@ class LCA {
 
 // slow, only for testing
 size_t naive_lca(GraphType& g, size_t u, size_t v, size_t root);
-
-// TODO move to tests
-GraphType test_tree();
-
-bool test_euler_tour();
-
-bool test_lca();
