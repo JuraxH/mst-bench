@@ -4,6 +4,7 @@
 #include "utils.h"
 
 #include <algorithm>
+#include <chrono>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -82,15 +83,50 @@ struct TestRunner : public AlgRunner {
     }
 };
 
+struct BenchRunner : public AlgRunner {
+    double ref_res;
+    std::vector<size_t> results;
+
+    BenchRunner(std::filesystem::path graph_file, std::vector<std::string> filter)
+        : AlgRunner(graph_file, filter)
+        , ref_res(graph.mst_weight())
+        , results()
+    { }
+
+    virtual void run() override {
+        std::cerr << "running bench on " << graph_file << ":\n";
+        AlgRunner::run();
+    }
+
+    void run_on_alg(MSTAlgorithm &alg) override {
+        size_t runs = 10;
+        using Clc = std::chrono::steady_clock;
+        auto start = Clc::now();
+        for (size_t i = 0; i < runs; i++) {
+            alg.compute_mst();
+        }
+        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(Clc::now() - start);
+        results.push_back(elapsed.count() / runs);
+    }
+
+    std::string res_as_json() {
+        auto dict = std::vector<std::pair<std::string, std::string>>{};
+        for (size_t i = 0; i < algs_to_run.size(); i++) {
+            dict.emplace_back(algs_to_run[i]->name, std::to_string(results[i]));
+        }
+        return to_json(dict);
+    }
+};
+
 int main(int argc , char** argv) {
     argparse::ArgumentParser program("mst-bench");
 
     auto test_command = argparse::ArgumentParser("test");
     test_command.add_description("verifies that impls of mst algs get the same result as boost impl");
     test_command.add_argument("graph")
-        .help("path to the file of the tested graph");
+        .help("path to the file of the graph");
     test_command.add_argument("--filter")
-        .help("only run on the specied algorithms")
+        .help("only run on the specified algorithms")
         .nargs(1, 10)
         .default_value(std::vector<std::string>{});
 
@@ -102,12 +138,21 @@ int main(int argc , char** argv) {
     info_command.add_argument("graph")
         .help("path to the file of the graph");
 
+    auto bench_command = argparse::ArgumentParser("bench");
+    bench_command.add_description("messures the expected runtime on the graph for each algorithm");
+    bench_command.add_argument("graph")
+        .help("path to the file of the graph");
+    bench_command.add_argument("--filter")
+        .help("only run on the specified algorithms")
+        .nargs(1, 10)
+        .default_value(std::vector<std::string>{});
+
     program.add_subparser(test_command);
     program.add_subparser(ls_command);
     program.add_subparser(info_command);
+    program.add_subparser(bench_command);
 
     try {
-        std::cerr << "starting the parsing" << std::endl;
         program.parse_args(argc, argv);
     } catch (std::exception const& err) {
         std::cerr << "failed to parse args" << std::endl;
@@ -116,7 +161,6 @@ int main(int argc , char** argv) {
         return 1;
     }
 
-    std::cerr << "checking test_command" << std::endl;
     if (program.is_subcommand_used(test_command)) {
         auto graph = test_command.get("graph");
         auto filter = test_command.get<std::vector<std::string>>("filter");
@@ -138,9 +182,17 @@ int main(int argc , char** argv) {
         auto g = parse_graph(graph);
         std::vector<std::pair<std::string, std::string>> info;
         info.emplace_back("connected", bool_to_str(g.is_connected()));
+        info.emplace_back("unique_weights", bool_to_str(all_edge_weights_unique(g.graph)));
         info.emplace_back("vertices", std::to_string(boost::num_vertices(g.graph)));
         info.emplace_back("edges", std::to_string(boost::num_edges(g.graph)));
         std::cout << to_json(info);
+    }
+    if (program.is_subcommand_used(bench_command)) {
+        auto graph = bench_command.get("graph");
+        auto filter = bench_command.get<std::vector<std::string>>("filter");
+        auto bench_runner = BenchRunner(graph, filter);
+        bench_runner.run();
+        std::cout << bench_runner.res_as_json();
     }
     return 0;
 }
