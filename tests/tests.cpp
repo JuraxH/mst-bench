@@ -4,6 +4,7 @@
 #include "tree_path_maxima.h"
 #include "utils.h"
 
+#include <limits>
 #include <stdexcept>
 
 using namespace boost::ut;
@@ -148,5 +149,31 @@ int main() {
         expect(tm.query_sets[4] == n_bits({0, 1}));
         expect(tm.query_sets[5] == n_bit(0));
         expect(tm.query_sets[6] == n_bit(1));
+    };
+
+    "TreePathMaxima/weigth"_test = [] {
+        auto t = test_tree();
+        auto queries = std::vector<BottomUpQuery>{{3, 0}, {3, 1}, {4, 1}, {5, 0}, {6, 2}, {4, 0}};
+        auto lca = LCA(t, 0);
+        auto tm = TreePathMaxima(queries, lca);
+        expect(tm.weight(0) == -std::numeric_limits<double>::infinity());
+        expect(tm.weight(1) == 1.5);
+        expect(tm.weight(2) == 2.3);
+        expect(tm.weight(3) == 0.9);
+        expect(tm.weight(4) == 1.2);
+        expect(tm.weight(5) == 3.1);
+        expect(tm.weight(6) == 2.8);
+    };
+
+    "TreePathMaxima/answers"_test = [] {
+        auto t = test_tree();
+        auto queries = std::vector<BottomUpQuery>{{3, 0}, {3, 1}, {4, 1}, {5, 0}, {6, 2}, {4, 0}};
+        auto lca = LCA(t, 0);
+        auto tm = TreePathMaxima(queries, lca);
+        std::cerr << dump_vector(tm.answers) << std::endl;
+        std::cerr << "ansver sets:\n";
+        for (size_t i = 0; i < tm.answer_sets.size(); i++) {
+            std::cerr << i << " " << dump_bits(tm.answer_sets[i]) << std::endl;
+        }
     };
 }
