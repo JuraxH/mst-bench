@@ -1,8 +1,13 @@
+#pragma once
+
 #include "graph.h"
 #include "utils.h"
+#include <algorithm>
 #include <boost/graph/detail/adjacency_list.hpp>
+#include <boost/graph/graph_concepts.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/subgraph.hpp>
+#include <boost/range/iterator_range_core.hpp>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -72,6 +77,23 @@ class LCA {
 
     size_t depth(Vertex u) {
         return height[u];
+    }
+
+    // for testing
+    size_t max_depth() {
+        return *std::max_element(height.begin(), height.end());
+    }
+
+    // this is used for test in real problem the leafs are already know
+    std::vector<Vertex> leafs() {
+        auto res = std::vector<Vertex>{};
+        auto leaf_depth = max_depth();
+        for (auto v : boost::make_iterator_range(boost::vertices(graph))) {
+            if (depth(v) == leaf_depth) {
+                res.emplace_back(v);
+            }
+        }
+        return res;
     }
 
     // debuging utils

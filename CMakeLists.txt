@@ -50,6 +50,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -g -Wall -Wextra -pedantic)
 add_executable(tests ${TEST_FILES})
 target_link_libraries(tests ut mst-lib)
 target_include_directories(tests PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_compile_options(tests PRIVATE -g -Wall -Wextra -pedantic)
 
 if(NOT BOOST_LOCAL STREQUAL "1")
 target_include_directories(tests PRIVATE "${BOOST_INCLUDE_DIRS}")

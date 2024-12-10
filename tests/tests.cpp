@@ -1,7 +1,8 @@
-#include <boost/graph/subgraph.hpp>
 #include <boost/ut.hpp>
 #include "graph.h"
 #include "lca.h"
+#include "tree_path_maxima.h"
+#include "utils.h"
 
 #include <stdexcept>
 
@@ -109,5 +110,43 @@ int main() {
         expect(lca.parrent(4) == 1);
         expect(lca.parrent(5) == 2);
         expect(lca.parrent(6) == 2);
+    };
+
+    "lca/leafs"_test = [] {
+        auto t = test_tree();
+        auto lca = LCA(t, 0);
+        expect(lca.max_depth() == 2);
+        auto expected_leafs = std::vector<Vertex>{3, 4, 5, 6};
+        auto leafs = lca.leafs();
+        expect(leafs == expected_leafs);
+    };
+
+    "TreePathMaxima/query_mapping"_test = [] {
+        auto t = test_tree();
+        auto queries = std::vector<BottomUpQuery>{{3, 0}, {3, 1}, {4, 1}, {5, 0}, {6, 2}, {4, 0}};
+        auto lca = LCA(t, 0);
+        auto tm = TreePathMaxima(queries, lca);
+        auto expected_mapping = std::vector<std::vector<size_t>>{{1, 0}, {5, 2, }, {3, }, {4, },};
+        auto res = tm.query_per_leaf();
+        for (size_t i = 0; i < expected_mapping.size(); i++) {
+            expect(res[i].size() == expected_mapping[i].size());
+            for (size_t j = 0; j < res[i].size(); j++) {
+                expect(res[i][j] == expected_mapping[i][j]);
+            }
+        }
+    };
+
+    "TreePathMaxima/query_set_propagation"_test = [] {
+        auto t = test_tree();
+        auto queries = std::vector<BottomUpQuery>{{3, 0}, {3, 1}, {4, 1}, {5, 0}, {6, 2}, {4, 0}};
+        auto lca = LCA(t, 0);
+        auto tm = TreePathMaxima(queries, lca);
+        expect(tm.query_sets[0] == 0);
+        expect(tm.query_sets[1] == n_bit(0));
+        expect(tm.query_sets[2] == n_bit(0));
+        expect(tm.query_sets[3] == n_bits({0, 1}));
+        expect(tm.query_sets[4] == n_bits({0, 1}));
+        expect(tm.query_sets[5] == n_bit(0));
+        expect(tm.query_sets[6] == n_bit(1));
     };
 }
