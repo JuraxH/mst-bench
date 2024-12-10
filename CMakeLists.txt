@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 
 project(mst-bench VERSION 1.0 LANGUAGES CXX)
 
@@ -30,6 +30,7 @@ FetchContent_MakeAvailable(boost)
 file(GLOB SRC_FILES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 file(GLOB BENCH_FILES "${CMAKE_SOURCE_DIR}/mst-bench/*.cpp")
 file(GLOB TEST_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
+file(GLOB BOOST_INCLUDE_DIRS "${boost_SOURCE_DIR}/libs/*/include")
 
 message(${boost_SOURCE_DIR})
 
@@ -37,17 +38,17 @@ message(${boost_SOURCE_DIR})
 add_library(mst-lib ${SRC_FILES})
 target_include_directories(mst-lib PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_compile_options(mst-lib PRIVATE -g -Wall -Wextra -pedantic)
-target_include_directories(mst-lib PRIVATE "${boost_SOURCE_DIR}/libs")
+target_include_directories(mst-lib PRIVATE "${BOOST_INCLUDE_DIRS}")
 
 # executable with cli interface for runing stuff needed for the benchmark
 add_executable(${PROJECT_NAME} ${BENCH_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/mst-bench")
 target_link_libraries(${PROJECT_NAME} argparse mst-lib)
 target_compile_options(${PROJECT_NAME} PRIVATE -g -Wall -Wextra -pedantic)
-target_include_directories(mst-lib PRIVATE "${boost_SOURCE_DIR}/libs")
+target_include_directories(${PROJECT_NAME} PRIVATE "${BOOST_INCLUDE_DIRS}")
 
 # unit tests
 add_executable(tests ${TEST_FILES})
 target_link_libraries(tests ut mst-lib)
 target_include_directories(tests PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(mst-lib PRIVATE "${boost_SOURCE_DIR}/libs")
+target_include_directories(tests PRIVATE "${BOOST_INCLUDE_DIRS}")
