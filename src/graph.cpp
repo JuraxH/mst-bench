@@ -54,7 +54,7 @@ double MSTAlgorithm::mst_weight(MST mst) {
         for (size_t u = 0; u < parent.size(); u++) {
             auto v = parent[u];
             // skip the root
-            if (v == null_vertex) {
+            if (v == null_vertex || v == u) {
                 continue;
             }
             auto edge = boost::edge(u, v, g.graph).first;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "boost/graph/kruskal_min_spanning_tree.hpp"
+#include "boost/graph/prim_minimum_spanning_tree.hpp"
 #include "graph.h"
 #include "utils.h"
 
@@ -39,6 +41,18 @@ class Kruskal : public MSTAlgorithm {
     MST compute_mst() override;
 };
 
+// for comparing with boost impl to test quality of our implementation
+class KruskalBoost : public MSTAlgorithm {
+    public:
+    KruskalBoost(Graph& g) : MSTAlgorithm(g, "kruskal_boost") { }
+
+    MST compute_mst() override {
+        auto mst = std::vector<Edge>{};
+        boost::kruskal_minimum_spanning_tree(g.graph, std::back_inserter(mst));
+        return mst;
+    }
+};
+
 class RandomKKT : public MSTAlgorithm {
     RandomKKT(Graph &g) : MSTAlgorithm(g, "random_KKT") { }
 
@@ -59,6 +73,19 @@ class PrimFibHeap : public MSTAlgorithm {
     MST compute_mst() override;
 };
 
+// for comparing with boost impl to test quality of our implementation
+class PrimBoost : public MSTAlgorithm {
+    public:
+    PrimBoost(Graph &g) : MSTAlgorithm(g, "prim_boost") { }
+
+    MST compute_mst() override {
+        auto preds = std::vector<Vertex>(boost::num_vertices(g.graph));
+        boost::prim_minimum_spanning_tree(g.graph, preds.data());
+        return preds;
+    }
+};
+
+
 class Boruvka : public MSTAlgorithm {
     public:
     Boruvka(Graph &g) : MSTAlgorithm(g, "boruvka") { }
@@ -69,8 +96,10 @@ class Boruvka : public MSTAlgorithm {
 inline std::vector<std::shared_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
     std::vector<std::shared_ptr<MSTAlgorithm>> algs{};
     algs.push_back(std::make_shared<Kruskal>(g));
+    algs.push_back(std::make_shared<KruskalBoost>(g));
     algs.push_back(std::make_shared<Boruvka>(g));
     algs.push_back(std::make_shared<PrimBinHeap>(g));
     algs.push_back(std::make_shared<PrimFibHeap>(g));
+    algs.push_back(std::make_shared<PrimBoost>(g));
     return algs;
 }
