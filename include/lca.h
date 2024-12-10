@@ -1,6 +1,7 @@
 #include "graph.h"
 #include "utils.h"
 #include <boost/graph/detail/adjacency_list.hpp>
+#include <boost/graph/graph_traits.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <iostream>
 #include <limits>
@@ -59,6 +60,18 @@ class LCA {
     size_t lca_in_block(size_t block_index, size_t in_block_index, size_t interval_length);
     size_t min_by_height(size_t a, size_t b) const {
         return height[euler_tour[a]] < height[euler_tour[b]] ? a : b;
+    }
+
+    Vertex parrent(Vertex u) {
+        if (u == root) {
+            return boost::graph_traits<GraphType>::null_vertex();
+        } else {
+            return euler_tour[first_visit[u] - 1];
+        }
+    }
+
+    size_t depth(Vertex u) {
+        return height[u];
     }
 
     // debuging utils

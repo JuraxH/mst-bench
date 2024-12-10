@@ -86,4 +86,28 @@ int main() {
         expect(src == 6);
         expect(dst == 2);
     };
+
+    "lca/depth"_test = [] {
+        auto t = test_tree();
+        auto lca = LCA(t, 0);
+        expect(lca.depth(0) == 0);
+        expect(lca.depth(3) == 2);
+        expect(lca.depth(4) == 2);
+        expect(lca.depth(5) == 2);
+        expect(lca.depth(6) == 2);
+        expect(lca.depth(1) == 1);
+        expect(lca.depth(2) == 1);
+    };
+
+    "lca/parent"_test = [] {
+        auto t = test_tree();
+        auto lca = LCA(t, 0);
+        expect(lca.parrent(0) == boost::graph_traits<GraphType>::null_vertex());
+        expect(lca.parrent(1) == 0);
+        expect(lca.parrent(2) == 0);
+        expect(lca.parrent(3) == 1);
+        expect(lca.parrent(4) == 1);
+        expect(lca.parrent(5) == 2);
+        expect(lca.parrent(6) == 2);
+    };
 }
