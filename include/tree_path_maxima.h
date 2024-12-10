@@ -7,6 +7,7 @@
 #include "graph.h"
 #include "lca.h"
 #include "utils.h"
+#include <bit>
 #include <boost/graph/subgraph.hpp>
 #include <boost/range/iterator_range_core.hpp>
 #include <limits>
@@ -106,17 +107,17 @@ struct TreePathMaxima {
 
         S=down(query_sets[v], (S & ((1 << (k + 1)) - 1)) | (1 << lca.depth(v)));
         answer_sets[v] = S;
-        // TODO fix
         for (size_t i = first_query[v]; i != None; i = next_query[i]) {
-            answers[i] = P[median_table[down(1<<lca.depth(queries[i].leaf),S)]];
+            auto tmp = S & (None<<(lca.depth(queries[i].ancestor) + 1));
+            auto lsb_pos = std::countr_zero(tmp);
+            answers[i] = P[lsb_pos];
         }
-        // TODO fix
         for (auto child : boost::make_iterator_range(boost::adjacent_vertices(v, tree))) {
             if (child != lca.parrent(v)) {
                 visit(child, S);
             }
         }
-    } // end visit
+    }
 
     // assigns each node query
     void assign_queries_to_leafs() {
