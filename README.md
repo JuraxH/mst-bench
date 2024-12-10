@@ -7,9 +7,18 @@ Because the build needs boost, takes about half an hour to configure and build.
 cmake -B build -S .
 cmake --build build
 ```
-
-## running 
+If you have boost installed locally use the following instead for faster build:
 ```
-./build/mst-bench
+cmake -DBOOST_LOCAL=1 -Bbuild -S.
+cmake --build build
+```
+## running 
+To run custom benchmarks check the help menu.
+```
+./build/mst-bench --help
+```
+To run unit test use the following command
+```
+./build/tests
 ```
 
