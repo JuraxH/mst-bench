@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import re
 
 # Load the CSV file
-file_path = "random_bench_1.csv"  # Replace with your CSV file path
+file_path = "random_bench_3.csv"  # Replace with your CSV file path
 df = pd.read_csv(file_path)
 
 # Extract the number of vertices and density from the path
