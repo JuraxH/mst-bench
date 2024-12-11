@@ -26,16 +26,26 @@ MST RandomKKT::compute_mst() {
 }
 
 std::unordered_set<double> RandomKKT::compute_mst_impl(GraphType& graph) {
-    auto* current = &graph;
-    auto tmp = GraphType();
-    auto mst = std::unordered_set<double>{};
-    while (boost::num_vertices(*current) > 1) {
-        auto [graph, edges] = borůvka_step2(*current);
-        tmp = std::move(graph);
-        current = &tmp;
-        mst.insert(edges.begin(), edges.end());
+    auto result = std::unordered_set<double>{};
+    if (boost::num_vertices(graph) <= 1) {
+        return result;
     }
-    return mst;
+    auto [boruvka1, edges1] = borůvka_step2(graph);
+    result.insert(edges1.begin(), edges1.end());
+    if (boost::num_vertices(boruvka1) <= 1) {
+        return result;
+    }
+    auto [boruvka2, edges2] = borůvka_step2(graph);
+    result.insert(edges2.begin(), edges2.end());
+    if (boost::num_vertices(boruvka2) <= 1) {
+        return result;
+    }
+    auto sub_graph = remove_random_edges(boruvka2);
+    auto sub_mst = compute_mst_impl(sub_graph);
+    auto smaller_graph = remove_heavy_edges(boruvka2, sub_mst);
+    auto final = compute_mst_impl(smaller_graph);
+    result.insert(final.begin(), final.end());
+    return result;
 }
 
 // expects tree as input
@@ -156,7 +166,6 @@ GraphType remove_heavy_edges(GraphType& graph, std::unordered_set<double> forest
     auto to_component_vertex = std::vector<Vertex>(boost::num_vertices(graph), graph.null_vertex());
     auto weight_map = get(boost::edge_weight, graph);
 
-    std::cerr << "start of remove heavy" << std::endl;
     std::function<void(Vertex, size_t)> dfs = [&] (Vertex u, size_t comp) {
         auto u_comp_vertex = to_component_vertex[u];
         for (auto edge : boost::make_iterator_range(boost::out_edges(u, graph))) {
@@ -185,8 +194,6 @@ GraphType remove_heavy_edges(GraphType& graph, std::unordered_set<double> forest
         }
     }
 
-    std::cerr << "compoenets created" << std::endl;
-
     std::vector<std::vector<std::tuple<Vertex, Vertex, double>>> queries(component_graphs.size());
     for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
         auto u = boost::source(edge, graph);
@@ -200,25 +207,17 @@ GraphType remove_heavy_edges(GraphType& graph, std::unordered_set<double> forest
         }
     }
 
-    std::cerr << "queries created" << std::endl;
-
     std::unordered_set<double> heavy_edges{};
     for (size_t i = 0; i < component_graphs.size(); i++) {
         if (boost::num_vertices(component_graphs[i]) > 1 && queries[i].size() > 0) {
-            std::cerr << "starting compute heavy with query" << std::endl;
             auto mv = MSTVerify(component_graphs[i], queries[i]);
-            dump_as_dot(std::cout, component_graphs[i]);
             auto heavy = mv.compute_heavy_edges();
-            std::cerr << "ending compute heavy: " << std::endl;
             for (auto weight : heavy) {
-                std::cerr << weight << " ";
                 heavy_edges.insert(weight);
             }
-            std::cerr << "end" << std::endl;
         }
     }
 
-    std::cerr << "heavy edges computed" << std::endl;
     auto res = GraphType(boost::num_vertices(graph));
     for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
         auto u = boost::source(edge, graph);
