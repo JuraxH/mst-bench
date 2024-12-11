@@ -31,7 +31,7 @@ std::unordered_set<double> RandomKKT::compute_mst_impl(GraphType& graph) {
 }
 
 // expects tree as input
-std::tuple<GraphType, std::vector<Vertex>> st_to_fbt(GraphType& graph) {
+std::tuple<GraphType, std::vector<Vertex>, Vertex> st_to_fbt(GraphType& graph) {
     auto old_to_leafs = std::vector<Vertex>(boost::num_vertices(graph), graph.null_vertex());
     auto fbt = GraphType();
     auto reduced_prev_to_fbt = std::vector<Vertex>{};
@@ -43,6 +43,7 @@ std::tuple<GraphType, std::vector<Vertex>> st_to_fbt(GraphType& graph) {
     }
     auto tmp = GraphType();
     auto* cur = &graph;
+    auto last_added = fbt.null_vertex(); // after loop ends thsi will be the root
     while (boost::num_vertices(*cur) > 1) {
         auto [reduced, edges] = boruvka_step_fbt(*cur);
         tmp = std::move(reduced);
@@ -55,12 +56,13 @@ std::tuple<GraphType, std::vector<Vertex>> st_to_fbt(GraphType& graph) {
             if (dst_fbt == fbt.null_vertex()) {
                 dst_fbt = boost::add_vertex(fbt);
                 reduced_to_fbt[dst_reduced] = dst_fbt;
+                last_added = dst_fbt;
             }
             boost::add_edge(src_fbt, dst_fbt, weight, fbt);
         }
         reduced_prev_to_fbt.swap(reduced_to_fbt);
     }
-    return {fbt, old_to_leafs};
+    return {fbt, old_to_leafs, last_added};
 }
 
 std::tuple<GraphType, std::vector<std::tuple<Vertex, Vertex, double>>> boruvka_step_fbt(GraphType& graph) {

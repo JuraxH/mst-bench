@@ -4,6 +4,7 @@
 #include "lca.h"
 #include "tree_path_maxima.h"
 #include "utils.h"
+#include "mst_verify.h"
 
 #include <limits>
 #include <stdexcept>
@@ -182,25 +183,61 @@ int main() {
 
     "st_to_fbt/simple_tree"_test = [] {
         auto t = test_tree();
-        auto [graph, leaf_map] = st_to_fbt(t);
+        auto [graph, leaf_map, root] = st_to_fbt(t);
         auto expected_leaf_weights = std::vector<double>{1.5, 0.9, 2.3, 0.9, 1.2, 3.1, 2.8};
         for (size_t i = 0; i < expected_leaf_weights.size(); i++) {
             auto edge = *boost::out_edges(leaf_map[i], graph).first;
             auto weight_map = get(boost::edge_weight, graph);
             expect(weight_map[edge] == expected_leaf_weights[i]);
         }
+        expect(root == 7);
     };
 
     "st_to_fbt/2_iter"_test = [] {
         auto t = test_tree();
         auto old_weight_map = get(boost::edge_weight, t);
         old_weight_map[boost::edge(0, 1, t).first] = 4.0;
-        auto [graph, leaf_map] = st_to_fbt(t);
+        auto [graph, leaf_map, root] = st_to_fbt(t);
         auto expected_leaf_weights = std::vector<double>{2.3, 0.9, 2.3, 0.9, 1.2, 3.1, 2.8};
         for (size_t i = 0; i < expected_leaf_weights.size(); i++) {
             auto edge = *boost::out_edges(leaf_map[i], graph).first;
             auto weight_map = get(boost::edge_weight, graph);
             expect(weight_map[edge] == expected_leaf_weights[i]);
         }
+        expect(root == 9);
     };
+
+    "mst_verify/transform_queries"_test = [] {
+        auto t = test_tree();
+        auto old_weight_map = get(boost::edge_weight, t);
+        old_weight_map[boost::edge(0, 1, t).first] = 4.0;
+        auto queries = std::vector<std::tuple<Vertex, Vertex, double>>{{3, 4, 5.1}, {4, 5, 6.0}, };
+        // auto expected_res = std::vector<double>{1.2, 3.1,};
+        auto expected_res = std::vector<BottomUpQuery>{{3, 8}, {4,8}, {4, 9}, {5, 9},};
+        auto mv = MSTVerify(t, queries);
+        auto lca = LCA(mv.fbt, mv.fbt_root);
+        auto res = mv.transform_queries(lca);
+        expect(res.size() == expected_res.size());
+        for (size_t i = 0; i < res.size(); i++) {
+            expect(res[i].leaf == expected_res[i].leaf);
+            // std::cerr << "from leaf   :" << res[i].leaf << std::endl;
+            // std::cerr << "from leaf   :" << expected_res[i].leaf << std::endl;
+            // std::cerr << "expected ans: " << expected_res[i].ancestor << std::endl;
+            // std::cerr << "res ans     :" << res[i].ancestor << std::endl;
+            expect(res[i].ancestor == expected_res[i].ancestor);
+        }
+    };
+
+    "mst_verify/heavy_edges"_test = [] {
+        auto t = test_tree();
+        auto old_weight_map = get(boost::edge_weight, t);
+        old_weight_map[boost::edge(0, 1, t).first] = 4.0;
+        auto queries = std::vector<std::tuple<Vertex, Vertex, double>>{{3, 4, 0.1}, {4, 5, 0.0}, {3, 0, 0.1}};
+        auto expected_res = std::unordered_set<double>{1.2, 4.0, 4.0};
+        auto mv = MSTVerify(t, queries);
+        auto heavy = mv.compute_heavy_edges();
+        std::cout << "teseting " << std::endl;
+        expect(expected_res == heavy);
+    };
+
 }

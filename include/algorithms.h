@@ -111,7 +111,7 @@ std::tuple<GraphType, std::unordered_set<double>> borůvka_step2 (GraphType& gra
 // edges are the form vec<(node_in_fbt, node_in_reduced, weigth)>
 std::tuple<GraphType, std::vector<std::tuple<Vertex, Vertex, double>>> boruvka_step_fbt(GraphType& graph);
 
-std::tuple<GraphType, std::vector<Vertex>> st_to_fbt(GraphType& graph);
+std::tuple<GraphType, std::vector<Vertex>, Vertex> st_to_fbt(GraphType& graph);
 
 inline std::vector<std::shared_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
     std::vector<std::shared_ptr<MSTAlgorithm>> algs{};
