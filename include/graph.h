@@ -40,12 +40,6 @@ struct Graph {
 Graph parse_graph(std::filesystem::path file);
 void dump_as_dot(std::ostream& os, GraphType const& graph);
 
-using EdgeMap = std::unordered_map<std::pair<Vertex, Vertex>, std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>;
-using EdgeSet = std::unordered_set<std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>;
-std::tuple<EdgeSet, GraphType, EdgeMap>
-borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old);
-std::tuple<GraphType, std::unordered_set<double>> borůvka_step2 (GraphType& graph);
-
 bool all_edge_weights_unique(GraphType const& g);
 std::vector<Vertex> find_path(const GraphType& g, Vertex start, Vertex end);
 

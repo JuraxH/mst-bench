@@ -103,6 +103,12 @@ class Boruvka : public MSTAlgorithm {
     MST compute_mst() override;
 };
 
+using EdgeMap = std::unordered_map<std::pair<Vertex, Vertex>, std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>;
+using EdgeSet = std::unordered_set<std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>;
+std::tuple<EdgeSet, GraphType, EdgeMap>
+borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old);
+std::tuple<GraphType, std::unordered_set<double>> borůvka_step2 (GraphType& graph);
+
 inline std::vector<std::shared_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
     std::vector<std::shared_ptr<MSTAlgorithm>> algs{};
     algs.push_back(std::make_shared<Kruskal>(g));
