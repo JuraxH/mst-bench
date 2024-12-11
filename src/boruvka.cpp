@@ -85,6 +85,7 @@ borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old) {
     for (auto [key, val] : components_edges) {
         auto [src, dst] = key;
         auto [weight, old_src, old_dst] = val;
+        // edge is key in components_edges set which prevents multiedges
         boost::add_edge(src, dst, weight, components);
         new_to_old[std::make_pair(src, dst)] = std::make_pair(old_src, old_dst);
     }
@@ -148,6 +149,7 @@ std::tuple<GraphType, std::unordered_set<double>> borůvka_step2(GraphType& grap
     for (auto [key, val] : components_edges) {
         auto [src, dst] = key;
         auto [weight, old_src, old_dst] = val;
+        // edge is key in components_edges set which prevents multiedges
         boost::add_edge(src, dst, weight, components);
     }
 

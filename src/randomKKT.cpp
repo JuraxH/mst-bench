@@ -76,6 +76,7 @@ std::tuple<GraphType, std::vector<Vertex>, Vertex> st_to_fbt(GraphType& graph) {
                 reduced_to_fbt[dst_reduced] = dst_fbt;
                 last_added = dst_fbt;
             }
+            // edges are unique because each src_fbt merges on exactly one
             boost::add_edge(src_fbt, dst_fbt, weight, fbt);
         }
         reduced_prev_to_fbt.swap(reduced_to_fbt);
@@ -84,12 +85,12 @@ std::tuple<GraphType, std::vector<Vertex>, Vertex> st_to_fbt(GraphType& graph) {
 }
 
 std::tuple<GraphType, std::vector<std::tuple<Vertex, Vertex, double>>> boruvka_step_fbt(GraphType& graph) {
-    auto weight_map = get(boost::edge_weight, graph);
+    auto weight_map = boost::get(boost::edge_weight, graph);
     std::vector<Vertex> paren(boost::num_vertices(graph));
     std::vector<size_t> rank(boost::num_vertices(graph));
-    boost::disjoint_sets dsets(make_iterator_property_map(
-                rank.begin(), get(boost::vertex_index, graph)), make_iterator_property_map(
-                paren.begin(), get(boost::vertex_index, graph)));
+    boost::disjoint_sets dsets(boost::make_iterator_property_map(
+                rank.begin(), boost::get(boost::vertex_index, graph)), boost::make_iterator_property_map(
+                paren.begin(), boost::get(boost::vertex_index, graph)));
     for (Vertex v : boost::make_iterator_range(boost::vertices(graph))) {
         dsets.make_set(v);
     }
@@ -154,6 +155,7 @@ std::tuple<GraphType, std::vector<std::tuple<Vertex, Vertex, double>>> boruvka_s
     for (auto [key, val] : components_edges) {
         auto [src, dst] = key;
         auto [weight, old_src, old_dst] = val;
+        // edge is key in unordered map so the edges are unique
         boost::add_edge(src, dst, weight, components);
     }
 
@@ -177,6 +179,10 @@ GraphType remove_heavy_edges(GraphType& graph, std::unordered_set<double> forest
                 if (v_comp == std::numeric_limits<size_t>::max()) {
                     auto v_comp_vertex = boost::add_vertex(component_graphs[comp]);
                     to_component_vertex[v] = v_comp_vertex;
+                    // edges are only added from already discovered vertexes
+                    // to undiscovered and when edge is added both vertexes
+                    // after that have comp number set, so the edge cannot be
+                    // added twice
                     boost::add_edge(u_comp_vertex, v_comp_vertex, weight, component_graphs[comp]);
                     dfs(v, comp);
                 }
@@ -224,6 +230,8 @@ GraphType remove_heavy_edges(GraphType& graph, std::unordered_set<double> forest
         auto v = boost::target(edge, graph);
         auto weight = weight_map[edge];
         if (!heavy_edges.contains(weight)) {
+            // here we are inserting a subset of previous edges, so assuming
+            // the original graph does not have multiedges new won't also
             boost::add_edge(u, v, weight, res);
         }
     }
@@ -242,6 +250,7 @@ GraphType remove_random_edges(GraphType& graph) {
         auto v = boost::target(edge, graph);
         auto weight = weight_map[edge];
         if (coin(gen)) {
+            // subset of the original graph, so no duplicates
             boost::add_edge(u, v, weight, res);
         }
     }

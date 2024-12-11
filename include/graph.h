@@ -37,6 +37,10 @@ struct Graph {
     double mst_weight();
 };
 
+inline std::pair<Vertex, Vertex> ordered(Vertex u, Vertex v) {
+    return {std::min(u, v), std::max(u, v)};
+}
+
 Graph parse_graph(std::filesystem::path file);
 void dump_as_dot(std::ostream& os, GraphType const& graph);
 

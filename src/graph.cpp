@@ -82,6 +82,9 @@ Graph parse_graph(std::filesystem::path file) {
 
     auto res = Graph(vertexes);
 
+    // to remove duplicates
+    auto inserted_edges = std::unordered_set<std::pair<Vertex, Vertex>, PairHash<Vertex, Vertex>>{};
+
     while (std::getline(is, line)) {
         auto tmp = collect(line | std::ranges::views::split(' '));
         if (tmp.size() != 3) {
@@ -90,7 +93,14 @@ Graph parse_graph(std::filesystem::path file) {
         size_t src = std::stoi(tmp[0]);
         size_t dst = std::stoi(tmp[1]);
         double weight = std::stod(tmp[2]);
-        boost::add_edge(src, dst, weight, res.graph);
+        assert(src < vertexes);
+        assert(dst < vertexes);
+        auto in_order = ordered(src, dst);
+        if (!inserted_edges.contains(in_order)) {
+            inserted_edges.insert(in_order);
+            // set inserted edges is used to preven multi edges
+            boost::add_edge(src, dst, weight, res.graph);
+        }
     }
 
     return res;
