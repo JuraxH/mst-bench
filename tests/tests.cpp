@@ -1,4 +1,5 @@
 #include <boost/ut.hpp>
+#include "algorithms.h"
 #include "graph.h"
 #include "lca.h"
 #include "tree_path_maxima.h"
@@ -177,5 +178,29 @@ int main() {
         //     std::cerr << i << " " << dump_bits(tm.answer_sets[i]) << std::endl;
         // }
         expect(tm.answers == expected_answers);
+    };
+
+    "st_to_fbt/simple_tree"_test = [] {
+        auto t = test_tree();
+        auto [graph, leaf_map] = st_to_fbt(t);
+        auto expected_leaf_weights = std::vector<double>{1.5, 0.9, 2.3, 0.9, 1.2, 3.1, 2.8};
+        for (size_t i = 0; i < expected_leaf_weights.size(); i++) {
+            auto edge = *boost::out_edges(leaf_map[i], graph).first;
+            auto weight_map = get(boost::edge_weight, graph);
+            expect(weight_map[edge] == expected_leaf_weights[i]);
+        }
+    };
+
+    "st_to_fbt/2_iter"_test = [] {
+        auto t = test_tree();
+        auto old_weight_map = get(boost::edge_weight, t);
+        old_weight_map[boost::edge(0, 1, t).first] = 4.0;
+        auto [graph, leaf_map] = st_to_fbt(t);
+        auto expected_leaf_weights = std::vector<double>{2.3, 0.9, 2.3, 0.9, 1.2, 3.1, 2.8};
+        for (size_t i = 0; i < expected_leaf_weights.size(); i++) {
+            auto edge = *boost::out_edges(leaf_map[i], graph).first;
+            auto weight_map = get(boost::edge_weight, graph);
+            expect(weight_map[edge] == expected_leaf_weights[i]);
+        }
     };
 }
