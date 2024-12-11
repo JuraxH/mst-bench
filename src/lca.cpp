@@ -1,4 +1,5 @@
 #include "lca.h"
+#include "utils.h"
 
 // This code is taken from and only slightly modified to fit our graph:
 // https://cp-algorithms.com/graph/lca_farachcoltonbender.html
@@ -81,7 +82,7 @@ void LCA::build_sparse_table() {
         // testing if height of current possition is prev + 1 if true add +
         if (block_index > 0 && (min_by_height(i - 1, i) == i - 1)) {
             size_t bit_index = block_index - 1;
-            block_mask[block_index] += 1 << bit_index; // marking as +
+            block_mask[cur_block] |= 1 << bit_index; // marking as +
         }
     }
     // compute mins for squares of blocks
@@ -109,10 +110,13 @@ void LCA::build_rmq() {
         computed[mask] = true;
         auto block_offset = cur_block * block_size;
         // compute the min of each sub interval 
+        assert(mask < (1ul<<(block_size - 1)));
         for (size_t l = 0; l < block_size; l++) {
+            assert(l < block_size);
             blocks[mask][l][l] = l; // the min of [l, l]
                                     // compute min for all interval sizes in block
             for (size_t r = l + 1; r < block_size; r++) {
+                assert(r < block_size);
                 blocks[mask][l][r] = blocks[mask][l][r - 1];
                 auto cur_min_pos = block_offset + blocks[mask][l][r];
                 auto orig_pos = r + block_offset;
@@ -160,6 +164,7 @@ std::string LCA::dump_block(size_t block_index) {
     auto res = std::string{};
     res += "block: " + std::to_string(block_index);
     res += " start_h: " + std::to_string(ref_h) + '\n';
+    res += "mask: " + dump_bits(mask) + '\n';
     auto signs = std::string{};
     auto vals = std::string{};
     size_t cur_val = ref_h;
