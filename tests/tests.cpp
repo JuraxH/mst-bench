@@ -240,4 +240,20 @@ int main() {
         expect(expected_res == heavy);
     };
 
+    "randomKKT/remove_heavy_edges"_test = [] {
+        auto t = test_tree();
+        auto old_weight_map = get(boost::edge_weight, t);
+        old_weight_map[boost::edge(0, 1, t).first] = 4.0;
+        boost::add_edge(3, 4, 0.2, t);
+        boost::add_edge(5, 0, 0.2, t);
+        auto forest = std::unordered_set<double>{0.9, 1.2, 4.0, 3.1, 2.8, 2.3};
+        auto removed = std::unordered_set<double>{3.1, 1.2};
+        // dump_as_dot(std::cout, t);
+        auto g = remove_heavy_edges(t, forest);
+        // dump_as_dot(std::cout, g);
+        auto weight_map = get(boost::edge_weight, g);
+        for (auto edge : boost::make_iterator_range(boost::edges(g))) {
+            expect(!removed.contains(weight_map[edge]));
+        }
+    };
 }

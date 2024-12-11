@@ -1,5 +1,13 @@
 #include "algorithms.h"
 #include "graph.h"
+#include "mst_verify.h"
+#include <boost/graph/compressed_sparse_row_graph.hpp>
+#include <boost/graph/detail/adjacency_list.hpp>
+#include <boost/graph/subgraph.hpp>
+#include <boost/range/iterator_range_core.hpp>
+#include <functional>
+#include <limits>
+#include <random>
 #include <unordered_set>
 
 RandomKKT::RandomKKT(Graph &g) : MSTAlgorithm(g, "random_KKT"), weight_to_edge() {
@@ -140,4 +148,104 @@ std::tuple<GraphType, std::vector<std::tuple<Vertex, Vertex, double>>> boruvka_s
     }
 
     return {std::move(components), std::move(merge_edges)};
+}
+
+GraphType remove_heavy_edges(GraphType& graph, std::unordered_set<double> forest_edges) {
+    auto component = std::vector<size_t>(boost::num_vertices(graph), std::numeric_limits<size_t>::max());
+    auto component_graphs = std::vector<GraphType>{};
+    auto to_component_vertex = std::vector<Vertex>(boost::num_vertices(graph), graph.null_vertex());
+    auto weight_map = get(boost::edge_weight, graph);
+
+    std::cerr << "start of remove heavy" << std::endl;
+    std::function<void(Vertex, size_t)> dfs = [&] (Vertex u, size_t comp) {
+        auto u_comp_vertex = to_component_vertex[u];
+        for (auto edge : boost::make_iterator_range(boost::out_edges(u, graph))) {
+            auto weight = weight_map[edge];
+            if (forest_edges.contains(weight)) {
+                auto v = boost::target(edge, graph);
+                auto v_comp = component[v];
+                component[v] = comp;
+                if (v_comp == std::numeric_limits<size_t>::max()) {
+                    auto v_comp_vertex = boost::add_vertex(component_graphs[comp]);
+                    to_component_vertex[v] = v_comp_vertex;
+                    boost::add_edge(u_comp_vertex, v_comp_vertex, weight, component_graphs[comp]);
+                    dfs(v, comp);
+                }
+            }
+        }
+    };
+
+    for (auto u : boost::make_iterator_range(boost::vertices(graph))) {
+        if (component[u] == std::numeric_limits<size_t>::max()) {
+            auto comp = component_graphs.size();
+            component[u] = comp;
+            component_graphs.push_back(GraphType());
+            to_component_vertex[u] = boost::add_vertex(component_graphs[comp]);
+            dfs(u, comp);
+        }
+    }
+
+    std::cerr << "compoenets created" << std::endl;
+
+    std::vector<std::vector<std::tuple<Vertex, Vertex, double>>> queries(component_graphs.size());
+    for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
+        auto u = boost::source(edge, graph);
+        auto v = boost::target(edge, graph);
+        auto weight = weight_map[edge];
+        auto comp = component[u];
+        if (comp == component[v] && comp != std::numeric_limits<size_t>::max() && !forest_edges.contains(weight)) {
+            auto u_comp = to_component_vertex[u];
+            auto v_comp = to_component_vertex[v];
+            queries[comp].push_back({u_comp, v_comp, weight});
+        }
+    }
+
+    std::cerr << "queries created" << std::endl;
+
+    std::unordered_set<double> heavy_edges{};
+    for (size_t i = 0; i < component_graphs.size(); i++) {
+        if (boost::num_vertices(component_graphs[i]) > 1 && queries[i].size() > 0) {
+            std::cerr << "starting compute heavy with query" << std::endl;
+            auto mv = MSTVerify(component_graphs[i], queries[i]);
+            dump_as_dot(std::cout, component_graphs[i]);
+            auto heavy = mv.compute_heavy_edges();
+            std::cerr << "ending compute heavy: " << std::endl;
+            for (auto weight : heavy) {
+                std::cerr << weight << " ";
+                heavy_edges.insert(weight);
+            }
+            std::cerr << "end" << std::endl;
+        }
+    }
+
+    std::cerr << "heavy edges computed" << std::endl;
+    auto res = GraphType(boost::num_vertices(graph));
+    for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
+        auto u = boost::source(edge, graph);
+        auto v = boost::target(edge, graph);
+        auto weight = weight_map[edge];
+        if (!heavy_edges.contains(weight)) {
+            boost::add_edge(u, v, weight, res);
+        }
+    }
+
+    return res;
+}
+
+GraphType remove_random_edges(GraphType& graph) {
+    auto rd = std::random_device();
+    auto gen = std::mt19937(rd());
+    auto coin = std::bernoulli_distribution(0.5);
+    auto res = GraphType(boost::num_vertices(graph));
+    auto weight_map = get(boost::edge_weight, graph);
+    for (auto edge : boost::make_iterator_range(boost::edges(graph))) {
+        auto u = boost::source(edge, graph);
+        auto v = boost::target(edge, graph);
+        auto weight = weight_map[edge];
+        if (coin(gen)) {
+            boost::add_edge(u, v, weight, res);
+        }
+    }
+
+    return res;
 }

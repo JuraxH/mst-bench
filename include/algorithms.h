@@ -110,8 +110,9 @@ borůvka_step(GraphType& graph, std::optional<EdgeMap> cur_to_old);
 std::tuple<GraphType, std::unordered_set<double>> borůvka_step2 (GraphType& graph);
 // edges are the form vec<(node_in_fbt, node_in_reduced, weigth)>
 std::tuple<GraphType, std::vector<std::tuple<Vertex, Vertex, double>>> boruvka_step_fbt(GraphType& graph);
-
 std::tuple<GraphType, std::vector<Vertex>, Vertex> st_to_fbt(GraphType& graph);
+GraphType remove_heavy_edges(GraphType& graph, std::unordered_set<double> forest_edges);
+GraphType remove_random_edges(GraphType& graph);
 
 inline std::vector<std::shared_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
     std::vector<std::shared_ptr<MSTAlgorithm>> algs{};
