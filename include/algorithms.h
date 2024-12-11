@@ -54,9 +54,19 @@ class KruskalBoost : public MSTAlgorithm {
 };
 
 class RandomKKT : public MSTAlgorithm {
-    RandomKKT(Graph &g) : MSTAlgorithm(g, "random_KKT") { }
+    public:
+    // We abuse here the fact that the edge weights are unique, to map
+    // the edges in the subgraphs to the original graph.
+    // If the edges were not unique we could instead assing each edge id
+    // and keep it as edge property in each subgraph, and order dedges by it,
+    // but that would make the code even more complicated, so we do this
+    // instead.
+    std::unordered_map<double, Edge> weight_to_edge;
+
+    RandomKKT(Graph &g);
 
     MST compute_mst() override;
+    std::unordered_set<double> compute_mst_impl(GraphType& graph);
 };
 
 class PrimBinHeap : public MSTAlgorithm {
@@ -101,5 +111,6 @@ inline std::vector<std::shared_ptr<MSTAlgorithm>> get_algorithms(Graph& g) {
     algs.push_back(std::make_shared<PrimBinHeap>(g));
     algs.push_back(std::make_shared<PrimFibHeap>(g));
     algs.push_back(std::make_shared<PrimBoost>(g));
+    algs.push_back(std::make_shared<RandomKKT>(g));
     return algs;
 }
