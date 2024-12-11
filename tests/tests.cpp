@@ -170,10 +170,12 @@ int main() {
         auto queries = std::vector<BottomUpQuery>{{3, 0}, {3, 1}, {4, 1}, {5, 0}, {6, 2}, {4, 0}};
         auto lca = LCA(t, 0);
         auto tm = TreePathMaxima(queries, lca);
-        std::cerr << dump_vector(tm.answers) << std::endl;
-        std::cerr << "ansver sets:\n";
-        for (size_t i = 0; i < tm.answer_sets.size(); i++) {
-            std::cerr << i << " " << dump_bits(tm.answer_sets[i]) << std::endl;
-        }
+        auto expected_answers = std::vector<Vertex>{1, 3, 4, 5, 6, 1};
+        // std::cerr << dump_vector(tm.answers) << std::endl;
+        // std::cerr << "ansver sets:\n";
+        // for (size_t i = 0; i < tm.answer_sets.size(); i++) {
+        //     std::cerr << i << " " << dump_bits(tm.answer_sets[i]) << std::endl;
+        // }
+        expect(tm.answers == expected_answers);
     };
 }

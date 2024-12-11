@@ -67,10 +67,8 @@ struct TestRunner : public AlgRunner {
             double res = alg.mst_weight(mst);
             if (is_close(res, ref_res)) {
                 results.push_back(true);
-                std::cerr << alg.name << ": passed\n";
             } else {
                 results.push_back(false);
-                std::cerr << alg.name << ": failed expected: \n" << ref_res << " got: " << res << '\n';
             }
     }
 
