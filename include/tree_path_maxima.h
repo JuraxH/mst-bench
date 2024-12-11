@@ -50,7 +50,8 @@ struct TreePathMaxima {
     std::vector<std::vector<Vertex>> rows; // rows of vetexes in each depth
     std::vector<size_t> median_table; // precomputed medians
     std::vector<size_t> T;
-    std::vector<size_t> P;
+    std::vector<size_t> visit_stack;
+    std::vector<double> weight_to_parent;
 
     TreePathMaxima(std::vector<BottomUpQuery> queries, LCA& lca)
         : tree(lca.graph)
@@ -66,17 +67,35 @@ struct TreePathMaxima {
         , rows()
         , median_table()
         , T()
-        , P()
+        , visit_stack()
+        , weight_to_parent(boost::num_vertices(tree), -std::numeric_limits<double>::infinity())
     {
+        compute_parent_weights();
         depth = lca.depth(queries[0].leaf);
         rows.resize(depth + 1, {});
         T.resize((1ul << depth) + 1, 0ul);
         median_table.resize(1ul<<(depth + 1), 0ul);
-        P.resize(depth + 1);
+        visit_stack.resize(depth + 1);
         compute_median_table(depth);
         assign_queries_to_leafs();
         propagate_query_sets_up();
         visit(root, 0ul);
+    }
+
+    void compute_parent_weights() {
+        auto weight_map = get(boost::edge_weight, tree);
+        for (auto edge : boost::make_iterator_range(boost::edges(tree))) {
+            auto u = boost::source(edge, tree);
+            auto v = boost::target(edge, tree);
+            auto u_parent = lca.parrent(u);
+            auto v_parent = lca.parrent(u);
+            auto weight = weight_map[edge];
+            if (v == u_parent) {
+                weight_to_parent[u] = weight;
+            } else if (u == v_parent) {
+                weight_to_parent[v] = weight;
+            }
+        }
     }
 
     size_t binary_search(double w, size_t S) {
@@ -84,25 +103,18 @@ struct TreePathMaxima {
         if (S == 0) return 0;
         size_t j = median_table[S];
         while (S != 1ul<<j) { // while |S|>1
-            S &= (weight(P[j]) > w) ? ~((1ul << j) - 1ul) : (1ul << j) - 1ul;
+            S &= (weight(visit_stack[j]) > w) ? ~((1ul << j) - 1ul) : (1ul << j) - 1ul;
             j = median_table[S];
         }
-        return (weight(P[j]) > w) ? j : 0;
+        return (weight(visit_stack[j]) > w) ? j : 0;
     }
 
-    // TODO fix this so it is constant
     double weight(Vertex u) {
-        if (u == root) {
-            return -std::numeric_limits<double>::infinity();
-        }
-        auto parent = lca.parrent(u);
-        auto edge = boost::edge(u, parent, tree).first;
-        auto weight_map = get(boost::edge_weight, tree);
-        return weight_map[edge];
+        return weight_to_parent[u];
     }
 
     void visit(Vertex v, size_t S) { // S = S of parent
-        P[lca.depth(v)]=v; // push current node on stack
+        visit_stack[lca.depth(v)]=v; // push current node on stack
         size_t k = binary_search(weight(v), down(query_sets[v], S));
 
         S=down(query_sets[v], (S & ((1 << (k + 1)) - 1)) | (1 << lca.depth(v)));
@@ -110,7 +122,7 @@ struct TreePathMaxima {
         for (size_t i = first_query[v]; i != None; i = next_query[i]) {
             auto tmp = S & (None<<(lca.depth(queries[i].ancestor) + 1));
             auto lsb_pos = std::countr_zero(tmp);
-            answers[i] = P[lsb_pos];
+            answers[i] = visit_stack[lsb_pos];
         }
         for (auto child : boost::make_iterator_range(boost::adjacent_vertices(v, tree))) {
             if (child != lca.parrent(v)) {
