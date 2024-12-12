@@ -42,7 +42,7 @@ def generate_graph(size, density, weight_range=(1, 10), file=sys.stdin):
 
         print(f"{u} {v} {weight}", file=file)
 
-nums = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+nums = range(50, 1250, 50)
 
 densities = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
