@@ -15,7 +15,7 @@
 
 // undirected graph with weighted edges
 using GraphType = boost::adjacency_list<
-    boost::listS,
+    boost::vecS,
     boost::vecS,
     boost::undirectedS,
     boost::no_property, // vertex property
