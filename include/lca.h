@@ -1,19 +1,10 @@
+// This code is taken from and only slightly modified to fit our graph:
+// https://cp-algorithms.com/graph/lca_farachcoltonbender.html
+
 #pragma once
 
 #include "graph.h"
-#include "utils.h"
-#include <algorithm>
-#include <boost/graph/detail/adjacency_list.hpp>
-#include <boost/graph/graph_concepts.hpp>
-#include <boost/graph/graph_traits.hpp>
-#include <boost/graph/subgraph.hpp>
-#include <boost/range/iterator_range_core.hpp>
-#include <iostream>
-#include <limits>
 #include <string>
-
-// This code is taken from and only slightly modified to fit our graph:
-// https://cp-algorithms.com/graph/lca_farachcoltonbender.html
 
 class LCA {
     public:
@@ -38,24 +29,7 @@ class LCA {
     
 
 
-    LCA(GraphType& graph, Vertex root)
-        : graph(graph)
-        , root(root)
-        , edges(boost::num_edges(graph))
-        , euler_size(2 * edges)
-        , block_size(std::max(1ul, log2(euler_size) / 2))
-        , block_cnt((euler_size + block_size - 1) / block_size)
-        , euler_tour()
-        , height(boost::num_vertices(graph), 0)
-        , first_visit(boost::num_vertices(graph), 0)
-        , sparse_table(block_cnt, std::vector<size_t>(log2(block_cnt) + 1))
-        , block_mask(block_cnt, 0)
-        , blocks(1 << (block_size - 1), std::vector(block_size, std::vector<size_t>(block_size)))
-    {
-        build_euler_tour();
-        build_sparse_table();
-        build_rmq();
-    }
+    LCA(GraphType& graph, Vertex root);
 
     void build_euler_tour();
     void build_sparse_table();
@@ -63,38 +37,24 @@ class LCA {
 
     size_t lca(size_t u, size_t v);
     size_t lca_in_block(size_t block_index, size_t in_block_index, size_t interval_length);
+
     size_t min_by_height(size_t a, size_t b) const {
         return height[euler_tour[a]] < height[euler_tour[b]] ? a : b;
     }
-
-    Vertex parrent(Vertex u) {
-        if (u == root) {
-            return boost::graph_traits<GraphType>::null_vertex();
-        } else {
-            return euler_tour[first_visit[u] - 1];
-        }
-    }
-
     size_t depth(Vertex u) {
         return height[u];
     }
+
+    Vertex parrent(Vertex u);
+
 
     // for testing
     size_t max_depth() {
         return *std::max_element(height.begin(), height.end());
     }
 
-    // this is used for test in real problem the leafs are already know
-    std::vector<Vertex> leafs() {
-        auto res = std::vector<Vertex>{};
-        auto leaf_depth = max_depth();
-        for (auto v : boost::make_iterator_range(boost::vertices(graph))) {
-            if (depth(v) == leaf_depth) {
-                res.emplace_back(v);
-            }
-        }
-        return res;
-    }
+    // this is used for tests, in real problem the leafs are already know
+    std::vector<Vertex> leafs();
 
     // debuging utils
     std::string dump();

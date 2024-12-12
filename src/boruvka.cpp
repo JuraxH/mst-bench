@@ -1,4 +1,4 @@
-#include "algorithms.h"
+#include "mst_algorithms.h"
 
 MST Boruvka::compute_mst() {
     GraphType* current = &g.graph;

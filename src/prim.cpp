@@ -1,4 +1,4 @@
-#include "algorithms.h"
+#include "mst_algorithms.h"
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <boost/range/iterator_range_core.hpp>

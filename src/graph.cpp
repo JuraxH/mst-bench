@@ -1,5 +1,5 @@
 #include "graph.h"
-#include "algorithms.h"
+#include "mst_algorithms.h"
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/breadth_first_search.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>

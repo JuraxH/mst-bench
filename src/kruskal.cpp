@@ -1,4 +1,4 @@
-#include "algorithms.h"
+#include "mst_algorithms.h"
 
 MST Kruskal::compute_mst() {
     auto mst = std::vector<Edge>{};

@@ -1,4 +1,4 @@
-#include "algorithms.h"
+#include "mst_algorithms.h"
 #include "graph.h"
 #include "mst_verify.h"
 #include <boost/graph/compressed_sparse_row_graph.hpp>

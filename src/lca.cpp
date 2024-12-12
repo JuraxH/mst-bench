@@ -1,8 +1,35 @@
+// This code is taken from and only slightly modified to fit our graph:
+// https://cp-algorithms.com/graph/lca_farachcoltonbender.html
+
 #include "lca.h"
 #include "utils.h"
 
-// This code is taken from and only slightly modified to fit our graph:
-// https://cp-algorithms.com/graph/lca_farachcoltonbender.html
+LCA::LCA(GraphType& graph, Vertex root)
+    : graph(graph)
+    , root(root)
+    , edges(boost::num_edges(graph))
+    , euler_size(2 * edges)
+    , block_size(std::max(1ul, log2(euler_size) / 2))
+    , block_cnt((euler_size + block_size - 1) / block_size)
+    , euler_tour()
+    , height(boost::num_vertices(graph), 0)
+    , first_visit(boost::num_vertices(graph), 0)
+    , sparse_table(block_cnt, std::vector<size_t>(log2(block_cnt) + 1))
+    , block_mask(block_cnt, 0)
+      , blocks(1 << (block_size - 1), std::vector(block_size, std::vector<size_t>(block_size)))
+{
+    build_euler_tour();
+    build_sparse_table();
+    build_rmq();
+}
+
+Vertex LCA::parrent(Vertex u) {
+    if (u == root) {
+        return boost::graph_traits<GraphType>::null_vertex();
+    } else {
+        return euler_tour[first_visit[u] - 1];
+    }
+}
 
 size_t LCA::lca(size_t u, size_t v) {
     auto l = first_visit[u];
@@ -126,6 +153,17 @@ void LCA::build_rmq() {
             }
         }
     }
+}
+
+std::vector<Vertex> LCA::leafs() {
+    auto res = std::vector<Vertex>{};
+    auto leaf_depth = max_depth();
+    for (auto v : boost::make_iterator_range(boost::vertices(graph))) {
+        if (depth(v) == leaf_depth) {
+            res.emplace_back(v);
+        }
+    }
+    return res;
 }
 
 std::string LCA::dump() {

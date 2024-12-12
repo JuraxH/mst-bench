@@ -62,7 +62,7 @@ struct PairHash {
 };
 
 // who added ranges to c++20 without collect????????
-std::vector<std::string> collect(auto iter) {
+inline std::vector<std::string> collect(auto iter) {
     std::vector<std::string> res{};
     for (const auto& part : iter) {
         std::string s{};

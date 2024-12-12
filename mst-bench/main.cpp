@@ -1,5 +1,5 @@
 #include "graph.h"
-#include "algorithms.h"
+#include "mst_algorithms.h"
 #include "lca.h"
 #include "utils.h"
 

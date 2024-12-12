@@ -1,5 +1,5 @@
 #include <boost/ut.hpp>
-#include "algorithms.h"
+#include "mst_algorithms.h"
 #include "graph.h"
 #include "lca.h"
 #include "tree_path_maxima.h"
