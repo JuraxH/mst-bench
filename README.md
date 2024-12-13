@@ -9,6 +9,7 @@ The project is focused on comparing algorithms for finding minimum spanning tree
 ├── bench_results/
 ├── CMakeLists.txt
 ├── eval_results.py
+├── download_graphs.py
 ├── graph_generator.py
 ├── graphs/
 ├── include/
@@ -42,6 +43,8 @@ The source files of the
 executable used to run these algorithms is in the `mst-bench/` directory.
 The `mst_bench.py` script is used to run benchmarks on the graph datasets
 and collect results as csv.
+The `download_graphs.py` is the script used to download the random_graphs
+dataset, when the repository is downloaded without them.
 The `graph_generator.py` is the script we used to generate the random dataset
 of graphs.
 The `eval_results.py` is used to plot graphs used for the report.
