@@ -78,10 +78,12 @@ To run unit tests use the following command
 ./build/tests
 ```
 ### Benchmark on random graphs dataset
-To reproduce the results used in report, after building the mst-bench run
+First run the `download_graphs.py` to download the dataset used in the
+report.
+To reproduce the results, after building the mst-bench run
 the following:
 ```
-python3 mst_bench.py bench graphs/random results.csv
+python3 mst_bench.py bench random_graphs results.csv
 ```
 The measured results will be saved to `resutls.csv`.
 
