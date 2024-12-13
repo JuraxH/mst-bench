@@ -1,0 +1,5 @@
+graph G {
+0[label="{a, c, f, g}"];
+1[label="{b, d, e}"];
+0--1 [label="5.0"];
+}

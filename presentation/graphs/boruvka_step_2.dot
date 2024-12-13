@@ -1,0 +1,16 @@
+graph G {
+a;
+b;
+c;
+d;
+e;
+f;
+a -- b [label="9"]
+a -- f [label="6"]
+a -- d [label="5", color="blue"]
+b -- c [label="4", color="blue"]
+b -- e [label="8"]
+c -- d [label="3", color="blue"]
+d -- e [label="7"]
+e -- f [label="2", color="blue"]
+}

@@ -1,0 +1,8 @@
+graph G {
+0 [label="{a, b, c, d}", color="blue"]
+1 [label="{e, f}", color="blue"]
+0 -- 0 [label="9"]
+0 -- 1 [label="6"]
+0 -- 1 [label="8"]
+0 -- 1 [label="7"]
+}
